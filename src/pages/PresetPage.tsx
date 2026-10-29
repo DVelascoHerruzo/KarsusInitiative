@@ -1,241 +1,145 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Plus, Play } from 'lucide-react'
-import toast from 'react-hot-toast'
-
-import Layout from '@/components/ui/Layout'
-import Modal from '@/components/ui/Modal'
-import ConfirmDelete from '@/components/ui/ConfirmDelete'
-import CreatureCard from '@/components/creatures/CreatureCard'
-import CreatureForm from '@/components/creatures/CreatureForm'
-import PresetForm from '@/components/presets/PresetForm'
-
-import { presetsApi } from '@/api/presets'
-import { encountersApi } from '@/api/encounters'
-import type { Creature } from '@/types'
+import { useNavigate, useParams } from 'react-router'
+import { Heart, Pencil, Play, Plus, Shield, Trash2, Users, Zap } from 'lucide-react'
+import { AppShell } from '@/components/layout/AppShell'
+import { Button, ButtonLink, IconButton } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/Dialog'
+import { Avatar, EmptyState, PageLoader } from '@/components/ui/display'
+import { CreatureFormDialog, type CreatureFormTarget } from '@/features/combat/CreatureFormDialog'
+import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
+import { NotFoundError } from '@/features/encounters/queries'
+import { SceneHeader } from '@/features/encounters/SceneHeader'
+import { useLaunchPreset, usePreset, usePresetMutations } from '@/features/presets/queries'
+import { formatModifier } from '@/lib/dice'
+import { uploadImage } from '@/lib/images'
+import type { Creature } from '@/lib/types'
 
 export default function PresetPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id = '' } = useParams()
   const navigate = useNavigate()
-  const qc = useQueryClient()
+  const { data: preset, isPending, error } = usePreset(id)
+  const m = usePresetMutations(id)
+  const launch = useLaunchPreset()
+  const [editing, setEditing] = useState(false)
+  const [formTarget, setFormTarget] = useState<CreatureFormTarget | null>(null)
+  const [removing, setRemoving] = useState<Creature | null>(null)
 
-  const [creatureModal, setCreatureModal] = useState<{ open: boolean; editing?: Creature }>({ open: false })
-  const [editModal,      setEditModal]    = useState(false)
-  const [deleteCreature, setDeleteCreature] = useState<Creature | null>(null)
-
-  // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: preset, isLoading, error } = useQuery({
-    queryKey: ['presets', id],
-    queryFn: () => presetsApi.get(id!),
-    enabled: !!id,
-  })
-
-  // ── Mutations ─────────────────────────────────────────────────────────────
-  const updatePre = useMutation({
-    mutationFn: (data: Parameters<typeof presetsApi.update>[1]) => presetsApi.update(id!, data),
-    onSuccess: (updated) => {
-      qc.setQueryData(['presets', id], updated)
-      qc.invalidateQueries({ queryKey: ['presets'] })
-      setEditModal(false)
-      toast.success('Preset updated')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const addCreature = useMutation({
-    mutationFn: (data: Parameters<typeof presetsApi.addCreature>[1]) => presetsApi.addCreature(id!, data),
-    onSuccess: (updated) => {
-      qc.setQueryData(['presets', id], updated)
-      setCreatureModal({ open: false })
-      toast.success('Creature added')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const editCreature = useMutation({
-    mutationFn: ({ cid, data }: { cid: string; data: Partial<Creature> }) =>
-      presetsApi.updateCreature(id!, cid, data),
-    onSuccess: (updated) => {
-      qc.setQueryData(['presets', id], updated)
-      setCreatureModal({ open: false })
-      toast.success('Creature updated')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const delCreature = useMutation({
-    mutationFn: (cid: string) => presetsApi.deleteCreature(id!, cid),
-    onSuccess: (updated) => {
-      qc.setQueryData(['presets', id], updated)
-      setDeleteCreature(null)
-      toast.success('Creature removed')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const launchPreset = useMutation({
-    mutationFn: () => encountersApi.createFromPreset(id!),
-    onSuccess: (enc) => {
-      qc.invalidateQueries({ queryKey: ['encounters'] })
-      toast.success('Encounter created from preset!')
-      navigate(`/encounters/${enc.id}`)
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  // ── Loading / Error ───────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-dnd-gold font-body tracking-widest animate-pulse">Loading preset…</div>
-        </div>
-      </Layout>
-    )
-  }
-
+  if (isPending) return <AppShell><PageLoader label="Loading preset" /></AppShell>
   if (error || !preset) {
     return (
-      <Layout>
-        <div className="text-center py-20">
-          <p className="text-dnd-red font-body">Preset not found.</p>
-          <button onClick={() => navigate('/')} className="dnd-button-secondary mt-4">← Back</button>
+      <AppShell>
+        <div className="border-l-4 border-accent py-6 pl-6">
+          <h1 className="display text-4xl text-vellum">{error instanceof NotFoundError ? 'Preset not found' : 'Something went wrong'}</h1>
+          <ButtonLink to="/" className="mt-6">Back</ButtonLink>
         </div>
-      </Layout>
+      </AppShell>
     )
   }
 
-  const sorted = [...preset.creatures].sort((a, b) => b.initiative - a.initiative)
+  // Party first, then monsters, alphabetically — presets have no turn order yet.
+  const sorted = [...preset.creatures].sort((a, b) => Number(b.is_player) - Number(a.is_player) || a.name.localeCompare(b.name))
 
   return (
-    <Layout title={preset.name}>
-      {preset.backgroundImageUrl && (
-        <div className="fixed inset-0 pointer-events-none z-0 opacity-5">
-          <img src={preset.backgroundImageUrl} alt="" className="w-full h-full object-cover" />
-        </div>
-      )}
-
-      <div className="relative z-10 space-y-6">
-        {/* Header */}
-        <div className="flex items-start gap-4 flex-wrap">
-          <button onClick={() => navigate('/')} className="dnd-button-ghost flex items-center gap-1">
-            <ChevronLeft className="w-4 h-4" />Back
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-body tracking-widest text-dnd-gold/50 uppercase">Preset</span>
-            </div>
-            <h1 className="font-display text-3xl text-dnd-gold truncate">{preset.name}</h1>
-            {preset.description && (
-              <p className="text-dnd-muted font-ui italic mt-1">{preset.description}</p>
-            )}
-          </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <button onClick={() => setEditModal(true)} className="dnd-button-secondary py-2 px-4 text-sm">
-              Edit Preset
-            </button>
-            <button
-              onClick={() => launchPreset.mutate()}
-              disabled={launchPreset.isPending}
-              className="dnd-button-primary py-2 px-4 text-sm flex items-center gap-1.5"
+    <AppShell>
+      <title>{`${preset.name} · Karsus`}</title>
+      <SceneHeader
+        title={preset.name}
+        description={preset.description}
+        background={preset.background_url}
+        backTo="/"
+        backLabel="Your table"
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(true)}>
+              <Pencil /> Edit
+            </Button>
+            <Button
+              variant="primary"
+              disabled={launch.isPending || preset.creatures.length === 0}
+              onClick={async () => navigate(`/encounters/${await launch.mutateAsync(id)}`)}
             >
-              <Play className="w-4 h-4" />
-              {launchPreset.isPending ? 'Launching…' : 'Launch Encounter'}
-            </button>
-          </div>
-        </div>
-
-        {/* Info card */}
-        <div className="dnd-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-dnd-muted text-xs font-body tracking-widest uppercase">Template Creatures</p>
-              <p className="text-dnd-gold font-display text-2xl">{sorted.length}</p>
-            </div>
-            <p className="text-dnd-muted text-sm font-ui italic">
-              Launching will create a new encounter with all these creatures.
-            </p>
-          </div>
-        </div>
-
-        {/* Creatures list */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-body text-lg text-dnd-parchment tracking-widest uppercase">
-              Creatures <span className="text-dnd-muted text-sm">({sorted.length})</span>
-            </h2>
-            <button
-              onClick={() => setCreatureModal({ open: true })}
-              className="dnd-button-secondary flex items-center gap-1.5 py-1.5 px-3 text-sm"
-            >
-              <Plus className="w-4 h-4" /> Add Creature
-            </button>
-          </div>
-
-          {sorted.length === 0 ? (
-            <div className="dnd-card p-10 text-center">
-              <p className="text-dnd-muted font-ui italic">No creatures yet. Build your template!</p>
-              <button
-                onClick={() => setCreatureModal({ open: true })}
-                className="dnd-button-secondary mt-4 inline-flex items-center gap-1.5 text-sm"
-              >
-                <Plus className="w-4 h-4" /> Add Creature
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {sorted.map((creature) => (
-                <CreatureCard
-                  key={creature.id}
-                  creature={creature}
-                  onEdit={() => setCreatureModal({ open: true, editing: creature })}
-                  onDelete={() => setDeleteCreature(creature)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* ── Modals ──────────────────────────────────────────────────── */}
-
-      <Modal open={editModal} onClose={() => setEditModal(false)} title="Edit Preset">
-        <PresetForm
-          initial={preset}
-          onCancel={() => setEditModal(false)}
-          loading={updatePre.isPending}
-          onSubmit={(data) => updatePre.mutate(data)}
-        />
-      </Modal>
-
-      <Modal
-        open={creatureModal.open}
-        onClose={() => setCreatureModal({ open: false })}
-        title={creatureModal.editing ? 'Edit Creature' : 'Add Creature'}
-        size="lg"
-      >
-        <CreatureForm
-          initial={creatureModal.editing}
-          onCancel={() => setCreatureModal({ open: false })}
-          loading={addCreature.isPending || editCreature.isPending}
-          onSubmit={(data) => {
-            if (creatureModal.editing) {
-              editCreature.mutate({ cid: creatureModal.editing.id, data })
-            } else {
-              addCreature.mutate(data)
-            }
-          }}
-        />
-      </Modal>
-
-      <ConfirmDelete
-        open={!!deleteCreature}
-        onClose={() => setDeleteCreature(null)}
-        onConfirm={() => deleteCreature && delCreature.mutate(deleteCreature.id)}
-        name={deleteCreature?.name ?? ''}
-        loading={delCreature.isPending}
+              <Play /> Launch encounter
+            </Button>
+          </>
+        }
       />
-    </Layout>
+
+      <section aria-labelledby="roster">
+        <div className="mb-4 flex items-end gap-3 border-b border-line pb-3">
+          <h2 id="roster" className="display text-3xl text-vellum">Roster</h2>
+          <span className="tabular cmd pb-0.5 text-sm text-ink-faint">{sorted.length}</span>
+          <div className="flex-1" />
+          <Button size="sm" onClick={() => setFormTarget({ mode: 'add' })}>
+            <Plus /> Add creature
+          </Button>
+        </div>
+
+        {sorted.length === 0 ? (
+          <EmptyState
+            icon={<Users />}
+            title="An empty roster"
+            body="Add your party or a band of monsters. When you launch, monsters roll initiative automatically."
+            action={<Button variant="primary" onClick={() => setFormTarget({ mode: 'add' })}><Plus /> Add creature</Button>}
+          />
+        ) : (
+          <ul className="grid gap-px bg-line sm:grid-cols-2">
+            {sorted.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 bg-panel p-3">
+                <Avatar name={c.name} src={c.image_url} size={44} />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-baseline gap-2">
+                    <span className="display truncate text-2xl text-ink">{c.name}</span>
+                    {c.is_player && <span className="cmd shrink-0 text-xs text-ink-faint">PC</span>}
+                  </p>
+                  <p className="tabular cmd mt-1 flex gap-4 text-xs text-ink-muted">
+                    <span className="flex items-center gap-1" title="Initiative bonus"><Zap className="size-3" />{formatModifier(c.initiative_bonus)}</span>
+                    {c.max_hp !== null && <span className="flex items-center gap-1" title="Max HP"><Heart className="size-3" />{c.max_hp}</span>}
+                    {c.armor_class !== null && <span className="flex items-center gap-1" title="Armor class"><Shield className="size-3" />{c.armor_class}</span>}
+                  </p>
+                </div>
+                <IconButton label={`Edit ${c.name}`} size="icon-sm" onClick={() => setFormTarget({ mode: 'edit', creature: c })}>
+                  <Pencil />
+                </IconButton>
+                <IconButton label={`Remove ${c.name}`} size="icon-sm" onClick={() => setRemoving(c)} className="hover:text-signal">
+                  <Trash2 />
+                </IconButton>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <EncounterFormDialog
+        open={editing}
+        onClose={() => setEditing(false)}
+        heading="Edit preset"
+        nameLabel="Preset name"
+        submitLabel="Save"
+        initial={{ title: preset.name, description: preset.description, background_url: preset.background_url }}
+        upload={uploadImage}
+        onSubmit={({ title, ...rest }) => m.update.mutateAsync({ name: title, ...rest })}
+      />
+      <CreatureFormDialog
+        target={formTarget}
+        context="preset"
+        existingNames={preset.creatures.map((c) => c.name)}
+        onClose={() => setFormTarget(null)}
+        onAdd={(creatures) => m.addCreatures.mutateAsync(creatures)}
+        onEdit={(cid, patch) => m.updateCreature.mutate({ cid, patch })}
+        upload={uploadImage}
+      />
+      <ConfirmDialog
+        open={removing !== null}
+        onClose={() => setRemoving(null)}
+        title={`Remove ${removing?.name ?? ''}?`}
+        body="They’ll be removed from this preset. Encounters already launched from it aren’t affected."
+        confirmLabel="Remove"
+        pending={m.removeCreature.isPending}
+        onConfirm={async () => {
+          if (removing) await m.removeCreature.mutateAsync(removing.id)
+          setRemoving(null)
+        }}
+      />
+    </AppShell>
   )
 }
