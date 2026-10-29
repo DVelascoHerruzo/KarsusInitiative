@@ -1,0 +1,377 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource-variable/archivo/wdth-italic.css';
+@import '@fontsource-variable/bodoni-moda/opsz.css';
+
+/* ─── Palette ─────────────────────────────────────────────────────────────────
+   Every colour is built from three hues. An accent theme is one line
+   ([data-accent='ember'] { --hue-accent: 45 }), and a light mode only has to
+   redefine the [data-mode] block below. Set both on <html>. */
+:root {
+  --hue-base: 278; /* the field: indigo pushed to midnight */
+  --hue-accent: 238; /* moonlight: focus, HP and everything interactive */
+  --hue-signal: 25; /* rubric red: whose turn it is, and danger */
+
+  /* The one angle. Every edge that isn't horizontal or vertical leans this way (\, about 12°).
+     --slant is its tangent for geometry; --slant-angle is the same angle for transforms. */
+  --slant: 0.21;
+  --slant-angle: 11.86deg;
+
+  /* The acting creature's highlight: a cut of vellum with an acute tail at the bottom right. */
+  --shard-cut: polygon(0 0.14em, calc(100% - 1.15em) 0, 100% 100%, 0.22em calc(100% - 0.05em));
+}
+
+:root,
+[data-mode='dark'] {
+  --canvas: oklch(0.16 0.04 var(--hue-base));
+  --panel: oklch(0.195 0.04 var(--hue-base));
+  --raised: oklch(0.245 0.045 var(--hue-base));
+  --line: oklch(0.4 0.03 var(--hue-base));
+  --ink: oklch(0.93 0.012 var(--hue-accent));
+  --ink-muted: oklch(0.76 0.025 var(--hue-base));
+  --ink-faint: oklch(0.6 0.03 var(--hue-base));
+  /* Vellum is the one loud surface: the acting creature, the main action. */
+  --vellum: oklch(0.91 0.028 85);
+  --vellum-ink: oklch(0.2 0.03 var(--hue-base));
+  --vellum-muted: oklch(0.46 0.035 60);
+  --accent: oklch(0.8 0.075 var(--hue-accent));
+  --accent-soft: oklch(0.88 0.035 var(--hue-accent));
+  --accent-ink: oklch(0.18 0.035 var(--hue-base));
+  /* Rubric is red ink for vellum and fills; signal is the same red lifted for text on the night. */
+  --rubric: oklch(0.5 0.19 var(--hue-signal));
+  --signal: oklch(0.66 0.2 calc(var(--hue-signal) + 2));
+  --warn: oklch(0.78 0.11 80); /* tarnished gilt */
+  --arcane: oklch(0.68 0.13 305); /* amethyst */
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  --font-display: 'Bodoni Moda Variable', 'Bodoni Moda', 'Didot', 'Bodoni 72', serif;
+
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-black: #000;
+  --color-white: #fff;
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-vellum: var(--vellum);
+  --color-vellum-ink: var(--vellum-ink);
+  --color-vellum-muted: var(--vellum-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-rubric: var(--rubric);
+  --color-signal: var(--signal);
+  --color-warn: var(--warn);
+  --color-arcane: var(--arcane);
+
+  /* Perfect-fourth scale from a 15px body. Display sizes keep room for Bodoni's descenders. */
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.84375rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.3;
+  --text-xl: 1.6667rem;
+  --text-xl--line-height: 1.2;
+  --text-2xl: 2.2188rem;
+  --text-2xl--line-height: 1.12;
+  --text-3xl: 2.9625rem;
+  --text-3xl--line-height: 1.06;
+  --text-4xl: 3.9375rem;
+  --text-4xl--line-height: 1.02;
+  --text-5xl: 5.25rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 7rem;
+  --text-6xl--line-height: 0.98;
+
+  /* Nothing is rounded and nothing floats on a soft shadow. */
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+
+  --ease-snap: cubic-bezier(0.77, 0, 0.18, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    font-weight: 420;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background: var(--color-canvas);
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) transparent;
+  }
+
+  /* Lucide draws round caps; the system has no curves. */
+  svg.lucide {
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+  }
+
+  input[type='number'] {
+    appearance: textfield;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
+  dialog::backdrop {
+    background: oklch(0.11 0.035 var(--hue-base) / 0.82);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ─── Type voices ─────────────────────────────────────────────────────────── */
+
+/* Names, titles, menu items: Bodoni, mixed case. Optical sizing thins the
+   hairlines as the size grows, so the bigger the name, the sharper the cut. */
+@utility display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  font-synthesis: none;
+}
+
+/* Buttons and commands: semi-condensed, upright, sentence case. */
+@utility cmd {
+  font-stretch: 87.5%;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Numbers read mid-fight: initiative and HP in rows. */
+@utility figure {
+  font-family: var(--font-sans);
+  font-stretch: 87.5%;
+  font-style: normal;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Small labels: italic, quiet, never caps. */
+@utility hint {
+  font-size: var(--text-xs);
+  font-stretch: 87.5%;
+  font-style: italic;
+  color: var(--color-ink-muted);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A hard offset under display type laid over a portrait, so the hairlines survive bright art. */
+@utility print {
+  text-shadow: 0.03em 0.03em 0 var(--color-canvas);
+}
+
+/* ─── Shapes ──────────────────────────────────────────────────────────────── */
+
+/* A slab behind the element, sheared to the system angle. The fill is --wedge
+   and the optional outline --wedge-line; the element keeps a rectangular box,
+   so focus outlines are never clipped. */
+@utility wedge {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--wedge, transparent);
+    border: 1px solid var(--wedge-line, transparent);
+    transform: skewX(var(--slant-angle));
+    transition: background-color 120ms, border-color 120ms;
+  }
+}
+
+/* Engraving: fine hatching parallel to the system angle. */
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    calc(90deg - var(--slant-angle)),
+    oklch(1 0 0 / 0.05) 0 1px,
+    transparent 1px 9px
+  );
+}
+
+/* ─── Turn stage ──────────────────────────────────────────────────────────────
+   The board is a size container, so the stage and the cascade can share one
+   geometry in its own units. The stage is the portrait against the left wall,
+   narrow at the top and wide at the bottom. Cascade rows sit beside it, each
+   pushed right by the slope at its own height, so the list runs parallel to the
+   edge. Rows grow to fill the height and only scroll below --row-min. */
+@layer components {
+  .board {
+    container-type: size;
+    position: relative;
+    overflow: hidden;
+    --stage-top: 30cqw;
+    --gap: 32px;
+    --pad-top: 40px;
+    --pad-bottom: 40px;
+    --row-min: 48px;
+    --row-max: 88px;
+    --row-h: clamp(var(--row-min), (100cqh - var(--pad-top) - var(--pad-bottom)) / var(--n, 1), var(--row-max));
+    --list-top: max(
+      var(--pad-top),
+      var(--pad-top) + (100cqh - var(--pad-top) - var(--pad-bottom) - var(--n, 1) * var(--row-h)) / 2
+    );
+    --edge: 3px;
+  }
+
+  .stage {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: calc(var(--stage-top) + var(--slant) * 100cqh);
+    clip-path: polygon(0 0, var(--stage-top) 0, 100% 100%, 0 100%);
+    overflow: hidden;
+    background: var(--color-canvas);
+
+    /* The honed edge: a vellum line along the slope, over whatever portrait is sliding through. */
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: var(--color-vellum);
+      clip-path: polygon(calc(var(--stage-top) - var(--edge)) 0, var(--stage-top) 0, 100% 100%, calc(100% - var(--edge)) 100%);
+    }
+  }
+
+  .cascade {
+    position: absolute;
+    top: var(--list-top);
+    left: calc(var(--stage-top) + var(--gap));
+    right: 0;
+    max-height: calc(100cqh - var(--list-top) - var(--pad-bottom));
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .cascade-row {
+    position: relative;
+    height: var(--row-h);
+    margin-left: calc(var(--slant) * (var(--list-top) + (var(--i) + 0.5) * var(--row-h)));
+  }
+
+  /* Narrow screens: the stage becomes a band across the top with a slanted foot,
+     and the cascade below it steps right by a small fixed amount. */
+  @media (width < 64rem) {
+    .board {
+      container-type: inline-size;
+      overflow: visible;
+      --row-h: 62px;
+    }
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 42dvh;
+      min-height: 260px;
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--slant) * 100cqw));
+
+      &::after {
+        clip-path: polygon(
+          0 calc(100% - var(--slant) * 100cqw - var(--edge)),
+          100% calc(100% - var(--edge)),
+          100% 100%,
+          0 calc(100% - var(--slant) * 100cqw)
+        );
+      }
+    }
+    .cascade {
+      position: relative;
+      inset: auto;
+      max-height: none;
+      overflow: visible;
+      margin-top: 12px;
+      padding-inline: 16px;
+    }
+    .cascade-row {
+      margin-left: min(var(--i) * 8px, 48px);
+    }
+  }
+
+  /* The acting creature's highlight: vellum over a rubric sliver that shows at
+     the tail and foot. Lives in a `relative isolate` box, behind the name. */
+  .shard {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      clip-path: var(--shard-cut);
+    }
+    &::before {
+      inset: 0.2em -0.38em -0.12em 0.5em;
+      background: var(--color-rubric);
+    }
+    &::after {
+      inset: 0;
+      background: var(--color-vellum);
+    }
+  }
+}
+
+dialog[open] {
+  animation: dialog-in 220ms var(--ease-snap);
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}

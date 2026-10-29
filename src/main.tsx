@@ -1,17 +1,27 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { GoogleOAuthProvider } from '@react-oauth/google'
-import App from './App'
-import './index.css'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { RouterProvider } from 'react-router/dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'motion/react'
+import { AuthProvider } from '@/features/auth/AuthProvider'
+import { router } from '@/app/router'
+import '@/styles/index.css'
 
-// Apply saved color theme before first render to prevent flash
-const savedTheme = localStorage.getItem('theme') ?? 'teal'
-document.documentElement.setAttribute('data-theme', savedTheme)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 15_000, retry: 1 },
+  },
+})
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
-      <App />
-    </GoogleOAuthProvider>
-  </React.StrictMode>,
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        {/* Honour the OS "reduce motion" setting for every animation. */}
+        <MotionConfig reducedMotion="user">
+          <RouterProvider router={router} />
+        </MotionConfig>
+      </AuthProvider>
+    </QueryClientProvider>
+  </StrictMode>,
 )

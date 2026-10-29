@@ -1,292 +1,107 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Plus, ChevronRight, ChevronLeftIcon, ExternalLink } from 'lucide-react'
-import toast from 'react-hot-toast'
-
-import Layout from '@/components/ui/Layout'
-import Modal from '@/components/ui/Modal'
-import ConfirmDelete from '@/components/ui/ConfirmDelete'
-import CreatureRow from '@/components/creatures/CreatureRow'
-import CreatureForm from '@/components/creatures/CreatureForm'
-import EncounterForm from '@/components/encounters/EncounterForm'
-
-import { encountersApi } from '@/api/encounters'
-import { useEncounterLive } from '@/hooks/useEncounterLive'
-import type { Creature } from '@/types'
+import { useParams } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { MonitorPlay, Pencil, Share2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { AppShell } from '@/components/layout/AppShell'
+import { Button, ButtonLink } from '@/components/ui/Button'
+import { PageLoader } from '@/components/ui/display'
+import { EncounterBoard, type BoardActions } from '@/features/combat/EncounterBoard'
+import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
+import { NotFoundError, keys, useEncounter, useEncounterMutations, useEncounterPings } from '@/features/encounters/queries'
+import { ShareDialog, openPlayerWindow } from '@/features/encounters/ShareDialog'
+import { uploadImage } from '@/lib/images'
 
 export default function EncounterPage() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const { id = '' } = useParams()
   const qc = useQueryClient()
+  const { data: encounter, isPending, error } = useEncounter(id)
+  const m = useEncounterMutations(id)
+  const [editing, setEditing] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
-  const [addModal,      setAddModal]      = useState(false)
-  const [editModal,     setEditModal]     = useState(false)
-  const [deleteCreature,setDeleteCreature]= useState<Creature | null>(null)
+  // Another device (a phone, a co-DM tab) changed something: resync, unless
+  // our own writes are in flight — their onSettled will resync anyway.
+  useEncounterPings(encounter?.share_token, () => {
+    if (qc.isMutating({ mutationKey: keys.encounter(id) }) === 0) void qc.invalidateQueries({ queryKey: keys.encounter(id) })
+  })
 
-  const openVisualView = () => {
-    window.open(
-      `/encounters/${id}/view`,
-      'encounter-visual-view',
-      'width=1280,height=800,menubar=no,toolbar=no,location=no,status=no',
-    )
+  const actions: BoardActions = {
+    advance: (step) => m.advance.mutate(step),
+    updateCreature: (cid, patch) => {
+      if (Object.keys(patch).length) m.updateCreature.mutate({ cid, patch })
+    },
+    addCreatures: (creatures) => m.addCreatures.mutateAsync(creatures),
+    removeCreature: (cid) => m.removeCreature.mutate(cid),
+    updateEncounter: (patch) => m.updateEncounter.mutate(patch),
+    upload: uploadImage,
   }
 
-  // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: encounter, isLoading, error } = useQuery({
-    queryKey: ['encounters', id],
-    queryFn: () => encountersApi.get(id!),
-    enabled: !!id,
-    refetchInterval: 5_000,
-  })
-
-  // ── Real-time sync ────────────────────────────────────────────────────────
-  // Patches the local cache when another device (e.g. phone) makes a change
-  useEncounterLive(id, (enc) => {
-    qc.setQueryData(['encounters', id], enc)
-  })
-
-  // ── Mutations ─────────────────────────────────────────────────────────────
-  const updateEnc = useMutation({
-    mutationFn: (data: Parameters<typeof encountersApi.update>[1]) => encountersApi.update(id!, data),
-    onSuccess: (updated) => {
-      qc.setQueryData(['encounters', id], updated)
-      qc.invalidateQueries({ queryKey: ['encounters'] })
-      setEditModal(false)
-      toast.success('Encounter updated')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const addCreature = useMutation({
-    mutationFn: (data: Parameters<typeof encountersApi.addCreature>[1]) =>
-      encountersApi.addCreature(id!, data),
-    onSuccess: (updated) => {
-      qc.setQueryData(['encounters', id], updated)
-      setAddModal(false)
-      toast.success('Creature added')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const editCreature = useMutation({
-    mutationFn: ({ cid, data }: { cid: string; data: Partial<Creature> }) =>
-      encountersApi.updateCreature(id!, cid, data),
-    onSuccess: (updated) => {
-      qc.setQueryData(['encounters', id], updated)
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const delCreature = useMutation({
-    mutationFn: (cid: string) => encountersApi.deleteCreature(id!, cid),
-    onSuccess: (updated) => {
-      qc.setQueryData(['encounters', id], updated)
-      setDeleteCreature(null)
-      toast.success('Creature removed')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const nextTurn = useMutation({
-    mutationFn: () => encountersApi.nextTurn(id!),
-    onSuccess: (ts) => {
-      qc.setQueryData(['encounters', id], (old: typeof encounter) =>
-        old ? { ...old, ...ts } : old,
-      )
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const prevTurn = useMutation({
-    mutationFn: () => encountersApi.prevTurn(id!),
-    onSuccess: (ts) => {
-      qc.setQueryData(['encounters', id], (old: typeof encounter) =>
-        old ? { ...old, ...ts } : old,
-      )
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  // ── Loading / Error states ────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-dnd-gold font-body tracking-widest animate-pulse">Loading encounter…</div>
-        </div>
-      </Layout>
-    )
-  }
+  if (isPending) return <AppShell bleed><PageLoader label="Loading encounter" /></AppShell>
 
   if (error || !encounter) {
     return (
-      <Layout>
-        <div className="text-center py-20">
-          <p className="text-dnd-red font-body">Encounter not found.</p>
-          <button onClick={() => navigate('/')} className="dnd-button-secondary mt-4">← Back</button>
+      <AppShell>
+        <div className="border-l-4 border-accent py-6 pl-6">
+          <h1 className="display text-4xl text-vellum">{error instanceof NotFoundError ? 'Encounter not found' : 'Something went wrong'}</h1>
+          <p className="mt-3 text-ink-muted">{error instanceof NotFoundError ? 'It may have been deleted.' : error?.message}</p>
+          <ButtonLink to="/" className="mt-6">Back to encounters</ButtonLink>
         </div>
-      </Layout>
+      </AppShell>
     )
   }
 
-  const sorted = [...encounter.creatures].sort((a, b) => b.initiative - a.initiative)
-  const activeCreature = sorted[encounter.currentTurn]
+  const playUrl = `${window.location.origin}/play/${encounter.share_token}`
+
+  function openPlayerView() {
+    if (!encounter!.share_enabled) {
+      m.updateEncounter.mutate({ share_enabled: true })
+      toast('Player link turned on', { description: 'Anyone with the link can now watch this encounter.' })
+    }
+    openPlayerWindow(playUrl)
+  }
 
   return (
-    <Layout title={encounter.title}>
-      {/* Background image — if present, replaces the global city bg */}
-      {encounter.backgroundImageUrl && (
-        <div className="fixed inset-0 pointer-events-none z-0 bg-dnd-black">
-          <img src={encounter.backgroundImageUrl} alt="" className="w-full h-full object-cover opacity-[0.22]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-dnd-black/50 via-transparent to-dnd-black/70" />
-        </div>
-      )}
+    <AppShell
+      bleed
+      title={encounter.title}
+      subtitle={encounter.description}
+      actions={
+        <>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+            <Pencil /> <span className="max-md:sr-only">Edit</span>
+          </Button>
+          <Button size="sm" onClick={() => setSharing(true)}>
+            <Share2 /> <span className="max-md:sr-only">Share</span>
+            {encounter.share_enabled && <span className="size-1.5 bg-accent" aria-label="(on)" />}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={openPlayerView}>
+            <MonitorPlay /> <span className="max-md:sr-only">Player view</span>
+          </Button>
+        </>
+      }
+    >
+      <title>{`${encounter.title} · Karsus`}</title>
+      <EncounterBoard encounter={encounter} actions={actions} />
 
-      <div className="relative z-10 space-y-6">
-        {/* Header: buttons row + title below (mobile) / all inline (sm+) */}
-        <div className="space-y-2">
-          {/* Always-visible top row: Back on left, Edit + Visual View on right */}
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/')} className="dnd-button-ghost flex items-center gap-1 py-2 px-3">
-              <ChevronLeft className="w-4 h-4" />Back
-            </button>
-            <div className="flex-1" />
-            <div className="flex gap-2">
-              <button onClick={() => setEditModal(true)} className="dnd-button-secondary py-2 px-4 text-sm flex items-center gap-1.5">
-                Edit
-              </button>
-              <button
-                onClick={openVisualView}
-                disabled={encounter.creatures.length === 0}
-                className="dnd-button-primary py-2 px-4 text-sm flex items-center gap-1.5"
-              >
-                <ExternalLink className="w-4 h-4" /> Visual View
-              </button>
-            </div>
-          </div>
-          {/* Title — always on its own line */}
-          <div className="min-w-0">
-            <h1 className="font-display text-3xl text-dnd-gold truncate">{encounter.title}</h1>
-            {encounter.description && (
-              <p className="text-dnd-muted font-ui italic mt-1">{encounter.description}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Round / Turn controls */}
-        <div className="dnd-card p-4 flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-dnd-muted text-xs font-body tracking-widest">ROUND</p>
-              <p className="text-dnd-gold font-display text-3xl">{encounter.currentRound}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-dnd-muted text-xs font-body tracking-widest">TURN</p>
-              <p className="text-dnd-parchment font-display text-3xl">
-                {encounter.creatures.length > 0 ? encounter.currentTurn + 1 : 0}
-                <span className="text-dnd-muted text-lg">/{sorted.length}</span>
-              </p>
-            </div>
-            {activeCreature && (
-              <div>
-                <p className="text-dnd-muted text-xs font-body tracking-widest">ACTIVE</p>
-                <p className="text-dnd-parchment font-body">{activeCreature.name}</p>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => prevTurn.mutate()}
-              disabled={prevTurn.isPending || encounter.creatures.length === 0}
-              className="dnd-button-secondary flex items-center gap-1.5 py-2 px-4"
-            >
-              <ChevronLeftIcon className="w-4 h-4" /> Prev Turn
-            </button>
-            <button
-              onClick={() => nextTurn.mutate()}
-              disabled={nextTurn.isPending || encounter.creatures.length === 0}
-              className="dnd-button-primary flex items-center gap-1.5 py-2 px-4"
-            >
-              Next Turn <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Creatures list */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-body text-lg text-dnd-parchment tracking-widest uppercase">
-              Creatures <span className="text-dnd-muted text-sm">({sorted.length})</span>
-            </h2>
-            <button
-              onClick={() => setAddModal(true)}
-              className="dnd-button-secondary flex items-center gap-1.5 py-1.5 px-3 text-sm"
-            >
-              <Plus className="w-4 h-4" /> Add Creature
-            </button>
-          </div>
-
-          {sorted.length === 0 ? (
-            <div className="dnd-card p-10 text-center">
-              <p className="text-dnd-muted font-ui italic">No creatures yet. Add the combatants!</p>
-              <button
-                onClick={() => setAddModal(true)}
-                className="dnd-button-secondary mt-4 inline-flex items-center gap-1.5 text-sm"
-              >
-                <Plus className="w-4 h-4" /> Add Creature
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {sorted.map((creature, i) => (
-                <CreatureRow
-                  key={creature.id}
-                  creature={creature}
-                  isActive={i === encounter.currentTurn}
-                  onSave={(data) => editCreature.mutate({ cid: creature.id, data })}
-                  onDelete={() => setDeleteCreature(creature)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* ── Modals ──────────────────────────────────────────────────── */}
-
-      {/* Edit encounter */}
-      <Modal open={editModal} onClose={() => setEditModal(false)} title="Edit Encounter">
-        <EncounterForm
-          initial={encounter}
-          onCancel={() => setEditModal(false)}
-          loading={updateEnc.isPending}
-          onSubmit={(data) => updateEnc.mutate(data)}
-        />
-      </Modal>
-
-      {/* Add creature */}
-      <Modal
-        open={addModal}
-        onClose={() => setAddModal(false)}
-        title="Add Creature"
-        size="lg"
-      >
-        <CreatureForm
-          onCancel={() => setAddModal(false)}
-          loading={addCreature.isPending}
-          onSubmit={(data) => addCreature.mutate(data)}
-        />
-      </Modal>
-
-      {/* Delete creature */}
-      <ConfirmDelete
-        open={!!deleteCreature}
-        onClose={() => setDeleteCreature(null)}
-        onConfirm={() => deleteCreature && delCreature.mutate(deleteCreature.id)}
-        name={deleteCreature?.name ?? ''}
-        loading={delCreature.isPending}
+      <EncounterFormDialog
+        open={editing}
+        onClose={() => setEditing(false)}
+        heading="Edit encounter"
+        nameLabel="Encounter name"
+        submitLabel="Save"
+        initial={encounter}
+        upload={uploadImage}
+        onSubmit={(v) => m.updateEncounter.mutateAsync(v)}
       />
-    </Layout>
+      <ShareDialog
+        open={sharing}
+        onClose={() => setSharing(false)}
+        url={playUrl}
+        enabled={encounter.share_enabled}
+        onToggle={(share_enabled) => m.updateEncounter.mutate({ share_enabled })}
+        onOpenWindow={() => openPlayerWindow(playUrl)}
+      />
+    </AppShell>
   )
 }

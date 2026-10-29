@@ -1,32 +1,6 @@
 {
-  "name": "karsus-initiative-api",
-  "version": "1.0.0",
+  "name": "karsus-api",
   "private": true,
-  "main": "dist/functions/*.js",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch",
-    "start": "npm run build && func start",
-    "prestart": "npm run build",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@azure/cosmos": "^4.1.0",
-    "@azure/functions": "^4.5.0",
-    "@azure/storage-blob": "^12.24.0",
-    "@azure/web-pubsub": "^1.2.0",
-    "bcryptjs": "^2.4.3",
-    "busboy": "^1.6.0",
-    "jsonwebtoken": "^9.0.2",
-    "uuid": "^10.0.0"
-  },
-  "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/busboy": "^1.5.4",
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.19.37",
-    "@types/uuid": "^10.0.0",
-    "typescript": "^5.5.3",
-    "vitest": "^4.1.0"
-  }
+  "description": "Azure Functions for Karsus Initiative, deployed as the Static Web App's managed API. Built from api/src by `npm run build:api` at the repo root into one bundled file, so there is nothing to install here.",
+  "main": "dist/index.js"
 }

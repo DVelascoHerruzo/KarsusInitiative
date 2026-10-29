@@ -1,30 +1,34 @@
+/// <reference types="vitest/config" />
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:7071',
-        changeOrigin: true,
-      },
-    },
+    // `npm run dev:api` serves the Azure Functions on 7071; the browser sees one origin, as in production.
+    proxy: { '/api': 'http://localhost:7071' },
   },
   build: {
-    outDir: 'dist',
-    sourcemap: false,
+    target: 'es2022',
+    sourcemap: true,
   },
   test: {
-    environment: 'jsdom',
+    css: false,
     globals: true,
-    setupFiles: ['./src/__tests__/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
+    projects: [
+      {
+        extends: true,
+        test: { name: 'web', include: ['src/**/*.test.{ts,tsx}'], environment: 'jsdom', setupFiles: ['./src/test/setup.ts'] },
+      },
+      {
+        extends: true,
+        test: { name: 'api', include: ['api/src/**/*.test.ts'], environment: 'node' },
+      },
+    ],
   },
 })

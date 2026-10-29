@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_GOOGLE_CLIENT_ID: string
+  /** "off" builds the site without accounts: landing page and offline demo only. */
+  readonly VITE_ACCOUNTS?: string
 }
 
 interface ImportMeta {
