@@ -5,7 +5,12 @@ node_modules/
 dist/
 build/
 .output/
+*.tsbuildinfo
+
+# Azure Functions API: built bundle and local tooling
 api/dist/
+api/node_modules/
+api/.func/
 
 # Environment / secrets
 api/local.settings.json
@@ -20,7 +25,7 @@ secrets.txt
 *-David-Dell.*
 *-David-Dell/
 
-# Azure Developer CLI
+# Azure Developer CLI (legacy)
 .azure/
 
 # Logs
@@ -39,3 +44,6 @@ Thumbs.db
 
 # Compiled JS in source tree (TypeScript source only)
 src/**/*.js
+
+# Design reference images (local only)
+design-refs/

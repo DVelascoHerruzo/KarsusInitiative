@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /play/
 
-Sitemap: https://gray-pebble-02f1bc70f.6.azurestaticapps.net/sitemap.xml
+Sitemap: https://karsusinitiative.com/sitemap.xml

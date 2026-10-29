@@ -1,0 +1,6 @@
+{
+  "name": "karsus-api",
+  "private": true,
+  "description": "Azure Functions for Karsus Initiative, deployed as the Static Web App's managed API. Built from api/src by `npm run build:api` at the repo root into one bundled file, so there is nothing to install here.",
+  "main": "dist/index.js"
+}
