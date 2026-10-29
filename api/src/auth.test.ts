@@ -1,3 +1,4 @@
+import { assertSameOrigin, type ApiRequest } from './http'
 import { googleUser } from './routes/auth'
 import { entryId } from './store/types'
 import { ORIGIN, signedUp, testApp } from './test/harness'
@@ -89,6 +90,31 @@ describe('accounts', () => {
     expect(cross.status).toBe(403)
     const form = await app.call('POST', '/api/auth/signup', { body: 'email=a@b.co', type: 'application/x-www-form-urlencoded' })
     expect(form.status).toBe(415)
+  })
+})
+
+describe('same-origin check behind Static Web Apps', () => {
+  // The function sees an internal URL; the public host only arrives in forwarding headers.
+  const req = (origin: string, headers: Record<string, string>): ApiRequest => ({
+    method: 'POST',
+    url: 'http://127.0.0.1:7071/api/auth/signup',
+    headers: new Headers({ origin, ...headers }),
+    params: {},
+    json: async () => ({}),
+    arrayBuffer: async () => new ArrayBuffer(0),
+  })
+  const site = 'https://orange-desert.azurestaticapps.net'
+
+  it('accepts the public host from Host, X-Forwarded-Host or X-MS-Original-URL', () => {
+    expect(() => assertSameOrigin(req(site, { host: 'orange-desert.azurestaticapps.net' }), null, false)).not.toThrow()
+    expect(() => assertSameOrigin(req(site, { 'x-forwarded-host': 'orange-desert.azurestaticapps.net' }), null, false)).not.toThrow()
+    expect(() => assertSameOrigin(req(site, { 'x-ms-original-url': `${site}/api/auth/signup` }), null, false)).not.toThrow()
+  })
+
+  it('still refuses other sites', () => {
+    expect(() => assertSameOrigin(req('https://evil.example', { host: 'orange-desert.azurestaticapps.net' }), 'https://karsusinitiative.com', false)).toThrow(
+      'Cross-site requests aren’t allowed',
+    )
   })
 })
 

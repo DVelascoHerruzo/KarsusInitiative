@@ -93,19 +93,49 @@ restart) and prints reset emails to the terminal. Paste connection strings into
 `infra/main.bicep` creates everything: the Static Web App, Cosmos DB, Storage, Web PubSub,
 Communication Services, and the app settings that wire them together.
 
-```bash
+In PowerShell (the VS Code default on Windows):
+
+```powershell
 az login
 az group create -n karsus -l westeurope
-az deployment group create -g karsus -f infra/main.bicep \
-  -p sessionSecret="$(node -e "console.log(require('crypto').randomBytes(48).toString('base64'))")" \
-  -p googleClientId="<client id>" googleClientSecret="<client secret>"   # optional, see step 4
+
+# A random 64-character session secret. Keep a copy somewhere safe (see the notes below).
+$secret = node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+$secret.Length   # must print 64
+
+az deployment group create -g karsus -f infra/main.bicep -p sessionSecret=$secret
 ```
+
+To redeploy later with the same secret, read it back from the site's settings:
+`az staticwebapp appsettings list -n <staticWebAppName> -g karsus --query properties.SESSION_SECRET -o tsv`.
+
+In bash, the same thing:
+
+```bash
+secret=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+echo ${#secret}   # must print 64
+az deployment group create -g karsus -f infra/main.bicep -p sessionSecret="$secret"
+```
+
+Keep each command on one line. If `az` asks *"Please provide securestring value for
+'sessionSecret'"*, the `-p` argument didn't arrive; press Ctrl+C and check the line. To turn on
+Google sign-in (step 4), add `googleClientId=<id> googleClientSecret=<secret>` after the secret on
+the same `-p`.
 
 The outputs include `staticWebAppName` and `staticWebAppHostname`.
 
+- **Regions.** The template defaults to the regions the live deployment uses: Storage and Web
+  PubSub in North Europe, Cosmos DB in Sweden Central, and the Static Web App in East US 2. West
+  Europe refused new resources on this subscription, and North Europe ran out of Cosmos DB capacity.
+  If Azure says a region "is not accepting new customers" or is "experiencing high demand", pass
+  `location=`, `cosmosLocation=` or `staticWebAppLocation=` with another region.
+- **Redeploying replaces all app settings.** Pass the same secret (and Google values) every time.
+  A different secret signs everyone out; leaving out the Google values turns Google sign-in off.
 - **Cosmos DB free tier** is limited to one account per subscription. If the deployment says it's
   taken, delete the other free-tier account first. Deploying with `cosmosFreeTier=false` would bill
   for 1000 RU/s.
+- **Web PubSub Free** may also be limited per subscription. If the deployment fails on the Web
+  PubSub resource with a quota message, delete the old Karsus Web PubSub (step 5) and deploy again.
 - **To change app settings later**, go to the Azure portal → the Static Web App → Environment
   variables. `api/src/config.ts` lists what the API reads.
 
@@ -115,9 +145,20 @@ The outputs include `staticWebAppName` and `staticWebAppHostname`.
 az staticwebapp secrets list -n <staticWebAppName> -g karsus --query properties.apiKey -o tsv
 ```
 
-Save that as the repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN`. Every push to `main` then
+Save that as the repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN`. Every push to `prod` then
 typechecks, lints, runs the tests, builds, and uploads the site and the API
-(`.github/workflows/deploy.yml`). Pull requests run the checks without deploying.
+(`.github/workflows/deploy.yml`). Pushes to `dev` and pull requests run the checks without deploying.
+
+To deploy straight from your machine instead (no commit needed):
+
+```bash
+npm run build
+npx @azure/static-web-apps-cli@2 deploy ./dist --api-location ./api --api-language node --api-version 22 --env production --deployment-token <token>
+```
+
+If `az` fails with `CERTIFICATE_VERIFY_FAILED` on a machine with Norton Antivirus, its HTTPS
+scanning is the cause. Point `REQUESTS_CA_BUNDLE` at a file containing the Azure CLI's
+`certifi/cacert.pem` followed by `C:\ProgramData\Norton\Antivirus\wscert.pem`.
 
 ### 3. Cloudflare → karsusinitiative.com
 

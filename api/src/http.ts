@@ -78,14 +78,21 @@ export function queryParam(req: ApiRequest, name: string): string | null {
   return new URL(req.url).searchParams.get(name)
 }
 
-/** Writes from another site are refused, on top of SameSite cookies. */
+/**
+ * Writes from another site are refused, on top of SameSite cookies. Inside Static
+ * Web Apps the function sees an internal URL, so the public host the request came
+ * in on is taken from the forwarding headers instead.
+ */
 export function assertSameOrigin(req: ApiRequest, publicOrigin: string | null, dev: boolean) {
   if (req.method === 'GET' || req.method === 'HEAD' || dev) return
   const origin = req.headers.get('origin')
   if (!origin) return
   const allowed = new Set([new URL(req.url).origin])
   if (publicOrigin) allowed.add(publicOrigin)
-  const forwarded = req.headers.get('x-forwarded-host')
-  if (forwarded) allowed.add(`https://${forwarded}`)
+  for (const host of [req.headers.get('x-forwarded-host'), req.headers.get('host')]) {
+    for (const h of host?.split(',') ?? []) if (h.trim()) allowed.add(`https://${h.trim()}`)
+  }
+  const original = req.headers.get('x-ms-original-url')
+  if (original && URL.canParse(original)) allowed.add(new URL(original).origin)
   if (!allowed.has(origin)) throw new HttpError(403, 'Cross-site requests aren’t allowed')
 }

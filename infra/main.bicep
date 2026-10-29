@@ -5,7 +5,8 @@
 //   Web PubSub (Free_F1)          live sync to player screens (20 concurrent connections)
 //   Communication Services        password reset email from an Azure-managed sender domain
 //
-// Deploy:  az deployment group create -g <resource-group> -f infra/main.bicep -p sessionSecret=<random 48+ chars> ...
+// Deploy (one line; see README for generating the secret):
+//   az deployment group create -g <resource-group> -f infra/main.bicep -p sessionSecret=<64 random hex chars>
 // Cloudflare sits in front for DNS, TLS and caching; see README.
 
 targetScope = 'resourceGroup'
@@ -13,12 +14,19 @@ targetScope = 'resourceGroup'
 @description('Prefix for resource names.')
 param name string = 'karsus'
 
-@description('Region for Cosmos DB, Storage and Web PubSub.')
-param location string = resourceGroup().location
+// Region defaults are where the live deployment sits. West Europe refused new resources for this
+// subscription, and North Europe had no Cosmos DB capacity, hence the spread. A resource can't move
+// region, so keep these unless you deploy into a fresh resource group.
+
+@description('Region for Storage and Web PubSub.')
+param location string = 'northeurope'
+
+@description('Region for Cosmos DB: Cosmos regions run out of capacity independently of the others.')
+param cosmosLocation string = 'swedencentral'
 
 @description('Static Web Apps only runs in a few regions.')
 @allowed(['westeurope', 'eastus2', 'centralus', 'westus2', 'eastasia'])
-param staticWebAppLocation string = 'westeurope'
+param staticWebAppLocation string = 'eastus2'
 
 @description('The public site address, used for links in emails and the Google sign-in redirect.')
 param publicOrigin string = 'https://karsusinitiative.com'
@@ -46,7 +54,7 @@ var suffix = uniqueString(resourceGroup().id)
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
   name: '${name}-cosmos-${suffix}'
-  location: location
+  location: cosmosLocation
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
@@ -54,7 +62,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
     // Never provision past what the free tier covers.
     capacity: { totalThroughputLimit: 1000 }
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
-    locations: [{ locationName: location, failoverPriority: 0, isZoneRedundant: false }]
+    locations: [{ locationName: cosmosLocation, failoverPriority: 0, isZoneRedundant: false }]
     minimalTlsVersion: 'Tls12'
   }
 }
