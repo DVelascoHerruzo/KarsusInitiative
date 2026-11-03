@@ -21,6 +21,12 @@ export default tseslint.config(
     },
   },
   {
+    // The browser extension: plain scripts loaded straight from extension/.
+    files: ['extension/**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, chrome: 'readonly' } },
+  },
+  {
     // The Azure Functions API runs on Node.
     files: ['api/**/*.{ts,mjs}'],
     languageOptions: { globals: globals.node },

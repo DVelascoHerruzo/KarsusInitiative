@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Eye, EyeOff, Heart, Pencil, Play, Plus, ScrollText, Shield, Trash2, Users, Zap } from 'lucide-react'
+import { Copy, Eye, EyeOff, Heart, Pencil, Play, Plus, ScrollText, Shield, Trash2, Users, Zap } from 'lucide-react'
+import { toast } from 'sonner'
 import ConfirmDelete from '@/components/ui/ConfirmDelete'
 import Layout, { PageHeader } from '@/components/ui/Layout'
 import { Token } from '@/components/ui/tokens'
@@ -11,6 +12,7 @@ import { NotFoundError } from '@/features/encounters/queries'
 import { MembersPanel } from '@/features/members/MembersPanel'
 import { presetKeys, useLaunchPreset, usePreset, usePresetMutations } from '@/features/presets/queries'
 import { cn } from '@/lib/cn'
+import { copyName, duplicateCreature } from '@/lib/combat'
 import { formatModifier } from '@/lib/dice'
 import { uploadImage } from '@/lib/images'
 import { classSummary } from '@/lib/sheet'
@@ -141,6 +143,16 @@ export default function PresetPage() {
                     onSheet={() => setSheetFor(c)}
                     onToggleHidden={() => m.updateCreature.mutate({ cid: c.id, patch: { hidden: !c.hidden } })}
                     onDelete={() => setRemoving(c)}
+                    onDuplicate={async () => {
+                      const { rename, copy } = copyName(c.name, preset.creatures.map((x) => x.name))
+                      if (rename) m.updateCreature.mutate({ cid: c.id, patch: { name: rename } })
+                      try {
+                        await m.addCreatures.mutateAsync([duplicateCreature(c, copy)])
+                        toast.success(`Added ${copy}`)
+                      } catch {
+                        // The mutation already reported it.
+                      }
+                    }}
                   />
                 ))}
               </ul>
@@ -217,11 +229,12 @@ interface CreatureCardProps {
   onEdit: () => void
   onSheet: () => void
   onToggleHidden: () => void
+  onDuplicate: () => void
   onDelete: () => void
 }
 
 /** A preset's creature: token, stats, who plays it. Tools appear on hover (always on a phone). */
-function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, onDelete }: CreatureCardProps) {
+function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, onDuplicate, onDelete }: CreatureCardProps) {
   const btn = 'rounded-lg p-1.5 text-dnd-muted transition-colors hover:bg-dnd-card'
   return (
     <li className={cn('dnd-card group relative overflow-hidden transition-all duration-300', c.hidden && 'border-dashed opacity-70')}>
@@ -262,6 +275,9 @@ function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, 
               <ScrollText className="h-3.5 w-3.5" />
             </button>
           )}
+          <button type="button" onClick={onDuplicate} className={cn(btn, 'hover:text-dnd-jade')} aria-label={`Duplicate ${c.name}`} title="Duplicate">
+            <Copy className="h-3.5 w-3.5" />
+          </button>
           <button type="button" onClick={onEdit} className={cn(btn, 'hover:text-dnd-gold')} aria-label={`Edit ${c.name}`} title="Edit">
             <Pencil className="h-3.5 w-3.5" />
           </button>

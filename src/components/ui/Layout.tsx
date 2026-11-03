@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ChevronDown, LogOut, Palette, Shield, User } from 'lucide-react'
+import { ChevronDown, Keyboard, LogOut, Palette, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { ShortcutsDialog } from '@/features/combat/ShortcutsDialog'
 import { cn } from '@/lib/cn'
 import { THEMES, useTheme } from '@/lib/theme'
 import type { Mode } from '@/lib/types'
+import { Emblem } from './Emblem'
 
 interface LayoutProps {
   children: ReactNode
@@ -59,12 +61,12 @@ export default function Layout({ children, title, guest }: LayoutProps) {
 export function Logo({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   return (
     <Link to="/" className="group flex shrink-0 items-center gap-2.5" aria-label="Karsus Initiative, home">
-      <div
-        className={cn('flex items-center justify-center rounded-sm border transition-all', size === 'md' ? 'h-9 w-9' : 'h-8 w-8')}
-        style={{ backgroundColor: 'rgb(var(--theme-primary-rgb) / 0.22)', borderColor: 'rgb(var(--theme-accent-rgb) / 0.5)' }}
-      >
-        <Shield className={size === 'md' ? 'h-5 w-5 text-dnd-jade' : 'h-4 w-4 text-dnd-jade'} />
-      </div>
+      <Emblem
+        className={cn(
+          'shrink-0 text-dnd-jade drop-shadow-[0_0_6px_rgb(var(--theme-accent-rgb)/0.45)] transition-transform group-hover:scale-105',
+          size === 'md' ? 'h-10 w-10' : 'h-9 w-9',
+        )}
+      />
       <div className="leading-tight">
         <span className={cn('font-display tracking-widest text-dnd-jade', size === 'md' ? 'text-base' : 'text-sm')}>KARSUS</span>
         <span className="block font-body text-[10px] tracking-[0.25em] text-dnd-muted">INITIATIVE</span>
@@ -114,7 +116,8 @@ function AccountMenu() {
   const { displayName, user, signOut } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [theme, setTheme] = useTheme()
+  const { theme, setTheme, custom, setCustom } = useTheme()
+  const [shortcuts, setShortcuts] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -146,7 +149,7 @@ function AccountMenu() {
       </button>
 
       {open && (
-        <div className="dnd-card absolute top-full right-0 z-50 mt-1 w-60 animate-slide-in py-2">
+        <div className="dnd-card absolute top-full right-0 z-50 mt-1 w-64 animate-slide-in py-2">
           <div className="border-b border-dnd-border/50 px-3 pb-2">
             <p className="truncate font-body text-sm text-dnd-parchment">{displayName}</p>
             <p className="truncate text-xs text-dnd-muted">{user?.email}</p>
@@ -172,8 +175,44 @@ function AccountMenu() {
                 </button>
               ))}
             </div>
+
+            {/* Your own colours: any pick switches to the custom theme. */}
+            <div
+              className={cn('mt-2 rounded-lg border-2 p-2 transition-colors', theme === 'custom' ? 'border-dnd-jade/70' : 'border-white/8')}
+              role="group"
+              aria-label="Custom colors"
+            >
+              <button
+                type="button"
+                onClick={() => setTheme('custom')}
+                aria-pressed={theme === 'custom'}
+                className="mb-1.5 flex w-full items-center gap-2 font-body text-[10px] tracking-[0.2em] text-dnd-muted uppercase hover:text-dnd-parchment"
+              >
+                <span
+                  aria-hidden
+                  className="h-3 w-3 rounded-full"
+                  style={{ background: 'conic-gradient(#ef4444, #fbbf24, #34d399, #2dd4bf, #60a5fa, #a78bfa, #ef4444)' }}
+                />
+                Custom
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <ColorField label="Main" value={custom.primary} onChange={(primary) => setCustom({ ...custom, primary })} />
+                <ColorField label="Text accent" value={custom.heading} onChange={(heading) => setCustom({ ...custom, heading })} />
+              </div>
+            </div>
           </div>
           <div className="mt-1 border-t border-dnd-border/50 px-1 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setShortcuts(true)
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-ui text-sm text-dnd-muted transition-colors hover:bg-dnd-surface/60 hover:text-dnd-parchment"
+            >
+              <Keyboard className="h-3.5 w-3.5" />
+              Keyboard Shortcuts
+            </button>
             <button
               type="button"
               onClick={async () => {
@@ -189,7 +228,22 @@ function AccountMenu() {
           </div>
         </div>
       )}
+      <ShortcutsDialog open={shortcuts} onClose={() => setShortcuts(false)} />
     </div>
+  )
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (hex: string) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-1.5 rounded-md bg-dnd-dark/60 p-1 pr-2 hover:bg-dnd-surface/60">
+      <input
+        type="color"
+        value={value.toLowerCase()}
+        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        className="h-6 w-6 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+      />
+      <span className="truncate font-ui text-[11px] text-dnd-parchment">{label}</span>
+    </label>
   )
 }
 

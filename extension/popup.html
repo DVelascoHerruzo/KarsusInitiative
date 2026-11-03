@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Karsus Initiative</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="brand">
+      <img src="icons/icon-48.png" alt="" width="32" height="32" />
+      <div>
+        <p class="brand-name">KARSUS</p>
+        <p class="brand-sub">INITIATIVE</p>
+      </div>
+    </header>
+
+    <!-- Shown while we ask the site who's signed in. -->
+    <section id="loading" class="state">
+      <p class="muted">Opening the table…</p>
+    </section>
+
+    <section id="signed-out" class="state" hidden>
+      <p class="lede">Sign in to Karsus to start encounters from here.</p>
+      <button type="button" class="btn primary" data-open="/login">Sign In</button>
+      <button type="button" class="btn ghost" data-open="/">Open Karsus</button>
+    </section>
+
+    <section id="offline" class="state" hidden>
+      <p class="lede">Couldn’t reach Karsus. Check your connection and try again.</p>
+      <button type="button" class="btn secondary" id="retry">Try Again</button>
+    </section>
+
+    <section id="signed-in" class="state" hidden>
+      <p class="greeting">Ready, <span id="username"></span></p>
+
+      <div class="tabs" role="tablist" aria-label="New encounter">
+        <button type="button" role="tab" id="tab-new" aria-controls="panel-new" aria-selected="true">From Scratch</button>
+        <button type="button" role="tab" id="tab-preset" aria-controls="panel-preset" aria-selected="false">From a Preset</button>
+      </div>
+
+      <form id="panel-new" role="tabpanel" aria-labelledby="tab-new" novalidate>
+        <label for="title" class="label">Title *</label>
+        <input id="title" class="input" maxlength="120" placeholder="The Final Showdown" autocomplete="off" required />
+        <label for="description" class="label">Description</label>
+        <textarea id="description" class="input" rows="3" maxlength="2000" placeholder="A brief description of the scene…"></textarea>
+        <button type="submit" class="btn primary" id="create">Create Encounter</button>
+      </form>
+
+      <div id="panel-preset" role="tabpanel" aria-labelledby="tab-preset" hidden>
+        <ul id="presets" class="presets"></ul>
+        <p id="presets-empty" class="muted" hidden>
+          No presets yet. Save your party or a band of monsters as a preset on Karsus, then launch it from here.
+        </p>
+      </div>
+
+      <p id="error" class="error" role="alert" hidden></p>
+      <button type="button" class="link" data-open="/">Open Karsus</button>
+    </section>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

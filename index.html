@@ -2,9 +2,19 @@
 <html lang="en" data-theme="teal">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Browser tabs and Google Search: Google wants a square icon of 48px or a multiple of it. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/google-192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#050F14" />
+
+    <!-- Add to Home Screen: opens full screen, like an app. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Karsus" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
     <title>Karsus – D&amp;D Initiative Tracker</title>
     <meta
@@ -18,17 +28,25 @@
     <meta property="og:url" content="https://karsusinitiative.com/" />
     <meta property="og:title" content="Karsus – D&amp;D Initiative Tracker" />
     <meta property="og:description" content="Free D&amp;D 5e initiative tracker. Track HP, conditions, and turn order for combat encounters at your table." />
+    <meta property="og:site_name" content="Karsus" />
+    <meta property="og:image" content="https://karsusinitiative.com/icons/google-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="The Karsus emblem: a twenty-sided die around a mountain peak" />
 
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Karsus – D&amp;D Initiative Tracker" />
     <meta name="twitter:description" content="Free D&amp;D 5e initiative tracker. Track HP, conditions, and turn order for combat encounters at your table." />
+    <meta name="twitter:image" content="https://karsusinitiative.com/icons/google-512.png" />
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "Karsus Initiative Tracker",
+        "alternateName": "Karsus",
         "url": "https://karsusinitiative.com/",
+        "image": "https://karsusinitiative.com/icons/google-512.png",
         "description": "Free D&D 5e initiative tracker for Dungeons & Dragons combat encounters.",
         "applicationCategory": "GameApplication",
         "operatingSystem": "Web",

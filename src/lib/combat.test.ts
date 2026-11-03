@@ -1,4 +1,4 @@
-import { advanceTurn, applyDamage, applyHealing, grantTempHp, healthBand, nextUp, numberedNames, sortByInitiative, turnDirection } from './combat'
+import { advanceTurn, applyDamage, applyHealing, copyName, grantTempHp, healthBand, nextUp, numberedNames, sortByInitiative, turnDirection } from './combat'
 import type { Condition } from './types'
 
 function c(id: string, initiative: number, extra: { bonus?: number; conditions?: Condition[]; at?: string } = {}) {
@@ -114,6 +114,21 @@ describe('numberedNames', () => {
     expect(numberedNames('Goblin', 3, [])).toEqual(['Goblin 1', 'Goblin 2', 'Goblin 3'])
     expect(numberedNames('Goblin', 2, ['Goblin 1', 'Goblin 4'])).toEqual(['Goblin 5', 'Goblin 6'])
     expect(numberedNames('Goblin', 1, ['Goblin'])).toEqual(['Goblin 1'])
+  })
+})
+
+describe('copyName', () => {
+  it('numbers the original and the copy the first time', () => {
+    expect(copyName('Goblin', ['Goblin', 'Vex'])).toEqual({ rename: 'Goblin 1', copy: 'Goblin 2' })
+  })
+
+  it('takes the next free number after that, whichever goblin is copied', () => {
+    expect(copyName('Goblin 1', ['Goblin 1', 'Goblin 2'])).toEqual({ rename: null, copy: 'Goblin 3' })
+    expect(copyName('Goblin 2', ['Goblin 1', 'Goblin 2', 'Goblin 5'])).toEqual({ rename: null, copy: 'Goblin 6' })
+  })
+
+  it('leaves names that only look alike alone', () => {
+    expect(copyName('Goblin Boss', ['Goblin Boss', 'Goblin 1'])).toEqual({ rename: 'Goblin Boss 1', copy: 'Goblin Boss 2' })
   })
 })
 

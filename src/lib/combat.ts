@@ -1,5 +1,5 @@
 import { hasCondition, withCondition, withoutCondition } from './conditions'
-import type { Condition, Creature, CreaturePatch, HealthBand } from './types'
+import type { Condition, Creature, CreaturePatch, HealthBand, NewCreature } from './types'
 
 type Orderable = Pick<Creature, 'id' | 'initiative' | 'initiative_bonus' | 'created_at'>
 
@@ -170,11 +170,54 @@ export function hpFraction(current: number | null, max: number | null): number |
 export function numberedNames(base: string, count: number, existing: readonly string[]): string[] {
   const name = base.trim()
   if (count <= 1 && !existing.includes(name)) return [name]
-  const pattern = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} (\\d+)$`)
-  const taken = existing.flatMap((n) => {
+  let next = Math.max(0, ...takenNumbers(name, existing)) + 1
+  return Array.from({ length: count }, () => `${name} ${next++}`)
+}
+
+/** The numbers already used after `base`: "Goblin 2", "Goblin 5" → [2, 5]. */
+function takenNumbers(base: string, existing: readonly string[]): number[] {
+  const pattern = new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} (\\d+)$`)
+  return existing.flatMap((n) => {
     const m = pattern.exec(n)
     return m ? [Number(m[1])] : []
   })
-  let next = Math.max(0, ...taken) + 1
-  return Array.from({ length: count }, () => `${name} ${next++}`)
+}
+
+/**
+ * Names for a duplicate. Copying "Goblin" makes it "Goblin 1" and adds "Goblin 2";
+ * copying any numbered goblin adds the next free number.
+ */
+export function copyName(name: string, existing: readonly string[]): { rename: string | null; copy: string } {
+  const numbered = / (\d+)$/.exec(name)
+  const base = numbered ? name.slice(0, numbered.index) : name
+  const taken = takenNumbers(base, existing)
+  if (!numbered && taken.length === 0) return { rename: `${base} 1`, copy: `${base} 2` }
+  return { rename: null, copy: `${base} ${Math.max(0, ...taken) + 1}` }
+}
+
+/** A fresh copy of a creature: same stats, full HP, no conditions; monsters in a fight roll their own initiative. */
+export function duplicateCreature(c: Creature, name: string, rollInitiative?: (bonus: number) => number): NewCreature {
+  return {
+    name,
+    is_player: c.is_player,
+    initiative: rollInitiative && !c.is_player ? rollInitiative(c.initiative_bonus) : c.initiative,
+    initiative_bonus: c.initiative_bonus,
+    max_hp: c.max_hp,
+    current_hp: c.max_hp,
+    temp_hp: 0,
+    armor_class: c.armor_class,
+    conditions: [],
+    notes: c.notes,
+    image_url: c.image_url,
+    hidden: c.hidden,
+    sheet: c.sheet && structuredClone(c.sheet),
+  }
+}
+
+/**
+ * Who the players may see: never hidden creatures, and before combat starts only
+ * the party, so the DM can set the scene and hide what should stay hidden first.
+ */
+export function visibleToPlayers<T extends Pick<Creature, 'hidden' | 'is_player'>>(creatures: readonly T[], started: boolean): T[] {
+  return creatures.filter((c) => !c.hidden && (started || c.is_player))
 }
