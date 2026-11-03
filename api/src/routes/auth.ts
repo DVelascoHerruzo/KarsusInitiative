@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { clearGoogleState, finishGoogle, startGoogle, type GoogleProfile } from '../auth/google'
 import { hashPassword, spendPasswordTime, verifyPassword } from '../auth/password'
-import { SESSION_COOKIE, currentUser, expiredCookie, publicUser, sessionCookie } from '../auth/session'
+import { SESSION_COOKIE, currentUser, expiredCookie, publicUser, requireUser, sessionCookie } from '../auth/session'
 import * as v from '../domain/validate'
 import { HttpError, json, noContent, readJson, redirect } from '../http'
 import type { Services } from '../services'
@@ -81,7 +81,21 @@ export const authRoutes: Route[] = [
       async GET(req, s) {
         const user = await currentUser(s, req)
         // `google` tells the sign-in page whether to offer "Continue with Google".
-        return json({ user: user && publicUser(user), google: s.config.google !== null })
+        // Every app load renews the session, so people who keep coming back stay signed in.
+        const cookies = user ? [await sessionCookie(s, user)] : []
+        return json({ user: user && publicUser(user), google: s.config.google !== null }, 200, { cookies })
+      },
+      /** Account preferences: the side of the table to open on. */
+      async PATCH(req, s) {
+        const user = await requireUser(s, req)
+        const body = await readJson(req)
+        const updated: UserEntry = {
+          ...user,
+          ...(body.mode !== undefined ? { mode: v.mode(body.mode) } : {}),
+          ...(body.username !== undefined ? { username: v.username(body.username) } : {}),
+        }
+        await s.store.putEntry(updated)
+        return json({ user: publicUser(updated) })
       },
     },
   },

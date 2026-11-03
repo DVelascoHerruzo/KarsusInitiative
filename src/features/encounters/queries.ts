@@ -72,15 +72,17 @@ export function useSharedEncounter(token: string) {
  * carries no data, so each screen refetches through its own protected or redacted
  * path. `onChange` is debounced so a burst of writes causes one refetch. When live
  * sync isn't configured (the API answers 204), screens fall back to polling.
+ * `source` is the API path that hands out the URL: `live/<share token>` for the
+ * shared link, `encounters/<id>/live` for signed-in players.
  */
-export function useEncounterPings(token: string | undefined, onChange: () => void) {
+export function useLivePings(source: string | undefined, onChange: () => void) {
   const latest = useRef(onChange)
   useEffect(() => {
     latest.current = onChange
   })
 
   useEffect(() => {
-    if (!token) return
+    if (!source) return
     let socket: WebSocket | null = null
     let closed = false
     let debounce: ReturnType<typeof setTimeout> | undefined
@@ -100,7 +102,7 @@ export function useEncounterPings(token: string | undefined, onChange: () => voi
     async function connect() {
       let url: string | undefined
       try {
-        const res = await fetch(`/api/live/${token}`, { credentials: 'same-origin' })
+        const res = await fetch(`/api/${source}`, { credentials: 'same-origin' })
         if (res.status === 204 || res.status === 404) return
         if (!res.ok) return reconnect()
         url = ((await res.json()) as { url: string }).url
@@ -125,8 +127,10 @@ export function useEncounterPings(token: string | undefined, onChange: () => voi
       clearTimeout(retry)
       socket?.close()
     }
-  }, [token])
+  }, [source])
 }
+
+export const useEncounterPings = (token: string | undefined, onChange: () => void) => useLivePings(token && `live/${token}`, onChange)
 
 // ─── Writes ──────────────────────────────────────────────────────────────────
 

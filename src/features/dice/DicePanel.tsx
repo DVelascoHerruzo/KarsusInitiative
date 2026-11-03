@@ -1,10 +1,6 @@
 import { useRef, useState, type Ref } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { inputClass } from '@/components/ui/Field'
-import { Panel, PanelAction, PanelHeader } from '@/components/ui/Panel'
-import { Kbd } from '@/components/ui/display'
+import { Dices, Trash2 } from 'lucide-react'
 import { DiceSyntaxError, rollDice, type RollResult } from '@/lib/dice'
 import { cn } from '@/lib/cn'
 
@@ -42,86 +38,85 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
   }
 
   return (
-    <Panel aria-labelledby="dice-heading" className={className}>
-      <PanelHeader
-        id="dice-heading"
-        title="Dice"
-        meta={<Kbd>R</Kbd>}
-        actions={
-          log.length > 0 && (
-            <PanelAction onClick={() => setLog([])} aria-label="Clear roll history">
-              <Trash2 /> Clear
-            </PanelAction>
-          )
-        }
-      />
-
-      <div className="space-y-3 p-4">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (notation.trim()) roll(notation)
-          }}
-        >
-          <input
-            ref={inputRef}
-            value={notation}
-            onChange={(e) => {
-              setNotation(e.target.value)
-              setError(null)
-            }}
-            placeholder="2d6+3, 4d6kh3…"
-            aria-label="Dice notation"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? 'dice-error' : undefined}
-            className={cn(inputClass, 'tabular min-w-0 flex-1')}
-          />
-          <Button type="submit" variant="secondary" disabled={!notation.trim()}>
-            Roll
-          </Button>
-        </form>
-        {error && (
-          <p id="dice-error" className="text-xs text-signal">
-            {error}
-          </p>
+    <section aria-labelledby="dice-heading" className={cn('dnd-card p-4', className)}>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 id="dice-heading" className="flex items-center gap-2 font-body text-sm tracking-widest text-dnd-parchment uppercase">
+          <Dices className="h-4 w-4 text-dnd-jade" /> Dice
+        </h2>
+        {log.length > 0 && (
+          <button type="button" onClick={() => setLog([])} aria-label="Clear roll history" className="dnd-button-ghost px-2 py-1 text-xs">
+            <Trash2 className="h-3.5 w-3.5" /> Clear
+          </button>
         )}
+      </div>
 
-        <div className="grid grid-cols-7 gap-px bg-line p-px">
-          {QUICK.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => quick(s)}
-              className={cn(
-                'tabular cmd h-9 bg-canvas text-sm text-ink-muted transition-colors hover:bg-raised hover:text-ink',
-                s === 20 && mode !== 'normal' && 'text-accent',
-              )}
-            >
-              d{s}
-            </button>
-          ))}
-        </div>
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (notation.trim()) roll(notation)
+        }}
+      >
+        <input
+          ref={inputRef}
+          value={notation}
+          onChange={(e) => {
+            setNotation(e.target.value)
+            setError(null)
+          }}
+          placeholder="2d6+3, 4d6kh3…"
+          aria-label="Dice notation"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'dice-error' : undefined}
+          className="dnd-input min-w-0 flex-1 py-2"
+        />
+        <button type="submit" className="dnd-button-secondary px-4 py-2" disabled={!notation.trim()}>
+          Roll
+        </button>
+      </form>
+      {error && (
+        <p id="dice-error" className="mt-1 text-xs text-red-400">
+          {error}
+        </p>
+      )}
 
-        <div role="radiogroup" aria-label="d20 mode" className="grid grid-cols-3 border border-line text-sm">
-          {(['disadvantage', 'normal', 'advantage'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={mode === m}
-              onClick={() => setMode(m)}
-              className={cn('cmd h-8 capitalize transition-colors', mode === m ? 'bg-accent text-accent-ink' : 'text-ink-faint hover:text-ink')}
-            >
-              {m === 'normal' ? 'Straight' : m}
-            </button>
-          ))}
-        </div>
+      <div className="mt-3 grid grid-cols-7 gap-1">
+        {QUICK.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => quick(s)}
+            className={cn(
+              'h-9 rounded-md border border-dnd-border/60 bg-dnd-dark/60 font-body text-xs transition-colors hover:border-dnd-jade hover:text-dnd-jade',
+              s === 20 && mode !== 'normal' ? 'text-dnd-gold' : 'text-dnd-muted',
+            )}
+          >
+            d{s}
+          </button>
+        ))}
+      </div>
+
+      <div role="radiogroup" aria-label="d20 mode" className="mt-2 grid grid-cols-3 gap-1">
+        {(['disadvantage', 'normal', 'advantage'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={mode === m}
+            onClick={() => setMode(m)}
+            className={cn(
+              'h-8 rounded-md font-body text-[11px] tracking-wider capitalize transition-colors',
+              mode === m ? 'bg-dnd-teal text-white' : 'text-dnd-muted hover:text-dnd-parchment',
+            )}
+          >
+            {m === 'normal' ? 'Straight' : m}
+          </button>
+        ))}
       </div>
 
       <p ref={live} className="sr-only" aria-live="polite" />
 
-      <ol className="max-h-72 min-h-16 space-y-px overflow-y-auto px-4 pb-4" aria-label="Roll history">
+      <ol className="mt-3 max-h-64 space-y-1 overflow-y-auto" aria-label="Roll history">
         <AnimatePresence initial={false}>
           {log.map((r) => (
             <motion.li
@@ -131,11 +126,11 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-3 bg-canvas px-3 py-2"
+              className="flex items-center gap-3 rounded-lg border border-dnd-border/40 bg-dnd-dark/60 px-3 py-1.5"
             >
               <div className="min-w-0 flex-1">
-                <p className="cmd truncate text-xs text-ink-muted">{r.label ?? r.notation}</p>
-                <p className="tabular truncate text-xs text-ink-faint">
+                <p className="truncate font-body text-xs text-dnd-muted">{r.label ?? r.notation}</p>
+                <p className="truncate text-xs text-dnd-muted/70">
                   {r.terms.map((t, i) =>
                     t.term.kind === 'flat' ? (
                       <span key={i}>
@@ -157,14 +152,14 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
                   )}
                 </p>
               </div>
-              <span className={cn('tabular display text-2xl', r.natural === 20 ? 'text-warn' : r.natural === 1 ? 'text-signal' : 'text-vellum')}>
+              <span className={cn('font-display text-2xl', r.natural === 20 ? 'text-dnd-amber' : r.natural === 1 ? 'text-dnd-red' : 'text-dnd-parchment')}>
                 {r.total}
               </span>
             </motion.li>
           ))}
         </AnimatePresence>
-        {log.length === 0 && <li className="hint py-3 text-center">Rolls stay on this device.</li>}
+        {log.length === 0 && <li className="py-2 text-center font-ui text-xs text-dnd-muted italic">Rolls stay on this device.</li>}
       </ol>
-    </Panel>
+    </section>
   )
 }

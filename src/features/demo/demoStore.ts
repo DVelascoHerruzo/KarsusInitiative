@@ -31,6 +31,10 @@ function creature(c: Partial<Creature> & Pick<Creature, 'name' | 'initiative'>):
     conditions: [],
     notes: null,
     image_url: null,
+    hidden: false,
+    player_id: null,
+    character_id: null,
+    sheet: null,
     created_at: stamp(),
     ...c,
   }
@@ -57,6 +61,10 @@ export function seedEncounter(): Encounter {
     active_creature_id: creatures[2]!.id,
     share_token: 'demo',
     share_enabled: true,
+    campaign_id: null,
+    hidden: false,
+    members: [],
+    invites: { player: null, dm: null },
     created_at: stamp(),
     updated_at: stamp(),
     creatures,
@@ -67,8 +75,10 @@ function load(): Encounter {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
+      // Saved by older versions too, before creatures could be hidden.
       const parsed = JSON.parse(raw) as Encounter
-      return { ...parsed, creatures: parsed.creatures.map((c) => ({ ...c, conditions: parseConditions(c.conditions) })) }
+      const creatures = parsed.creatures.map((c) => ({ ...c, hidden: c.hidden ?? false, conditions: parseConditions(c.conditions) }))
+      return { ...seedEncounter(), ...parsed, creatures }
     }
   } catch {
     // Corrupt or blocked storage: fall through to a fresh seed.

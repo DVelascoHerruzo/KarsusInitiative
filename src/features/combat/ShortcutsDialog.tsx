@@ -1,5 +1,4 @@
-import { Dialog } from '@/components/ui/Dialog'
-import { Kbd } from '@/components/ui/display'
+import Modal from '@/components/ui/Modal'
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['Space', '→'], label: 'Next turn (or start combat)' },
@@ -17,13 +16,17 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['?'], label: 'Show this list' },
 ]
 
+export function Kbd({ children }: { children: string }) {
+  return <kbd className="rounded border border-dnd-border bg-dnd-dark px-1.5 py-0.5 font-body text-[11px] text-dnd-parchment">{children}</kbd>
+}
+
 export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Dialog open={open} onClose={onClose} title="Keyboard shortcuts" size="sm">
-      <dl className="space-y-2.5">
+    <Modal open={open} onClose={onClose} title="Keyboard shortcuts" size="sm">
+      <dl className="space-y-2.5 p-6">
         {SHORTCUTS.map((s) => (
           <div key={s.label} className="flex items-center justify-between gap-4 text-sm">
-            <dt className="text-ink-muted">{s.label}</dt>
+            <dt className="font-ui text-dnd-muted">{s.label}</dt>
             <dd className="flex shrink-0 gap-1">
               {s.keys.map((k) => (
                 <Kbd key={k}>{k}</Kbd>
@@ -32,6 +35,6 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
           </div>
         ))}
       </dl>
-    </Dialog>
+    </Modal>
   )
 }

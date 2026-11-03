@@ -1,21 +1,17 @@
-import { isRouteErrorResponse, useRouteError } from 'react-router'
-import { TitleScreen } from '@/components/layout/TitleScreen'
-import { Button, ButtonLink } from '@/components/ui/Button'
+import { Link, isRouteErrorResponse, useRouteError } from 'react-router'
+import { Dices, Skull } from 'lucide-react'
+import { MessageScreen } from '@/components/ui/Scene'
 
 export default function NotFoundPage() {
   return (
-    <TitleScreen
-      title={
-        <>
-          A natural
-          <br />1
-        </>
-      }
-      lede="That page doesn’t exist, or it rolled off the table."
+    <MessageScreen
+      icon={<Dices className="h-12 w-12 text-dnd-jade" />}
+      title="A natural 1"
+      body="That page doesn’t exist, or it rolled off the table."
       actions={
-        <ButtonLink to="/" variant="primary" size="lg">
+        <Link to="/" className="dnd-button-primary">
           Go home
-        </ButtonLink>
+        </Link>
       }
     />
   )
@@ -27,23 +23,18 @@ export function RouteError() {
   if (isRouteErrorResponse(error) && error.status === 404) return <NotFoundPage />
   console.error(error)
   return (
-    <TitleScreen
-      title={
-        <>
-          Something
-          <br />
-          broke
-        </>
-      }
-      lede="An unexpected error stopped this page. Reloading usually fixes it, and your data is safe on the server."
+    <MessageScreen
+      icon={<Skull className="h-12 w-12 text-dnd-red" />}
+      title="Something broke"
+      body="An unexpected error stopped this page. Reloading usually fixes it, and your data is safe on the server."
       actions={
         <>
-          <Button variant="primary" size="lg" onClick={() => window.location.reload()}>
+          <button type="button" className="dnd-button-primary" onClick={() => window.location.reload()}>
             Reload
-          </Button>
-          <ButtonLink to="/" size="lg">
+          </button>
+          <Link to="/" className="dnd-button-secondary">
             Go home
-          </ButtonLink>
+          </Link>
         </>
       }
     />

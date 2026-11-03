@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
-import type { CreaturePatch, NewCreature, Preset, PresetFields, PresetSummary } from '@/lib/types'
+import type { CreaturePatch, NewCreature, Preset, PresetFields, PresetPatch, PresetSummary } from '@/lib/types'
 import { keys as encounterKeys, orNotFound, withConditions } from '@/features/encounters/queries'
 
 export const presetKeys = {
@@ -13,8 +13,9 @@ export function usePresetList() {
   return useQuery({ queryKey: presetKeys.presets, queryFn: () => api.get<PresetSummary[]>('presets') })
 }
 
-export function usePreset(id: string) {
+export function usePreset(id: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: presetKeys.preset(id),
     queryFn: async (): Promise<Preset> => {
       const preset = await orNotFound(api.get<Preset>(`presets/${id}`))
@@ -60,7 +61,7 @@ export function usePresetMutations(id: string) {
 
   return {
     update: useMutation({
-      mutationFn: (patch: Partial<PresetFields>) => api.patch(base, patch),
+      mutationFn: (patch: PresetPatch) => api.patch(base, patch),
       onSuccess: refresh,
       onError,
     }),

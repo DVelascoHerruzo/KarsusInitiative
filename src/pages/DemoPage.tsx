@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { MonitorPlay, RotateCcw, Share2 } from 'lucide-react'
-import { AppShell } from '@/components/layout/AppShell'
-import { Button, ButtonLink } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/Dialog'
+import { Link } from 'react-router'
+import { ExternalLink, RotateCcw, Share2 } from 'lucide-react'
+import ConfirmDelete from '@/components/ui/ConfirmDelete'
+import Layout, { PageHeader } from '@/components/ui/Layout'
 import { EncounterBoard } from '@/features/combat/EncounterBoard'
 import { ShareDialog, openPlayerWindow } from '@/features/encounters/ShareDialog'
 import { demoActions, resetDemo, useDemoEncounter } from '@/features/demo/demoStore'
 
+/** The whole DM screen without an account, saved in this browser. */
 export default function DemoPage() {
   const encounter = useDemoEncounter()
   const [sharing, setSharing] = useState(false)
@@ -14,63 +15,57 @@ export default function DemoPage() {
   const playUrl = `${window.location.origin}/demo/play`
 
   return (
-    <AppShell
-      bleed
-      guest
-      title={encounter.title}
-      subtitle={encounter.description}
-      actions={
-        <>
-          <span className="hint hidden xl:inline">demo, saved in this browser</span>
-          <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
-            <RotateCcw /> <span className="max-md:sr-only">Reset</span>
-          </Button>
-          <Button size="sm" onClick={() => setSharing(true)}>
-            <Share2 /> <span className="max-md:sr-only">Share</span>
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => openPlayerWindow(playUrl)}>
-            <MonitorPlay /> <span className="max-md:sr-only">Player view</span>
-          </Button>
-        </>
-      }
-    >
+    <Layout guest title="Demo">
       <title>Demo · Karsus</title>
-      <EncounterBoard encounter={encounter} actions={demoActions} />
+      <div className="space-y-6">
+        <PageHeader
+          back={{ to: '/', label: 'Home' }}
+          eyebrow="Demo · saved in this browser"
+          title={encounter.title}
+          description={encounter.description}
+          actions={
+            <>
+              <button type="button" onClick={() => setConfirmReset(true)} className="dnd-button-ghost px-3 py-2 text-sm">
+                <RotateCcw className="h-4 w-4" /> Reset
+              </button>
+              <button type="button" onClick={() => setSharing(true)} className="dnd-button-secondary px-4 py-2 text-sm">
+                <Share2 className="h-4 w-4" /> Share
+              </button>
+              <button type="button" onClick={() => openPlayerWindow(playUrl)} className="dnd-button-primary px-4 py-2 text-sm">
+                <ExternalLink className="h-4 w-4" /> Visual View
+              </button>
+            </>
+          }
+        />
 
-      <section className="flex flex-col gap-6 border-t border-line px-4 py-16 sm:px-10 lg:flex-row lg:items-end lg:justify-between">
-        <div className="border-l-4 border-accent pl-5">
-          <h2 className="display text-4xl text-vellum sm:text-5xl">
-            Ready for
-            <br />
-            your own table?
-          </h2>
-          <p className="mt-4 max-w-md text-ink-muted">
-            A free account saves encounters and presets, adds portraits and backdrops, and gives every fight a shareable player link.
-          </p>
-        </div>
-        <ButtonLink to="/login" variant="primary" size="lg">
-          Create a free account
-        </ButtonLink>
-      </section>
+        <EncounterBoard encounter={encounter} actions={demoActions} />
 
-      <ShareDialog
-        open={sharing}
-        onClose={() => setSharing(false)}
-        url={playUrl}
-        enabled={null}
-        onOpenWindow={() => openPlayerWindow(playUrl)}
-      />
-      <ConfirmDialog
+        <section className="dnd-card flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="font-display text-3xl text-dnd-gold">Ready for your own table?</h2>
+            <p className="mt-2 max-w-xl font-ui text-dnd-muted italic">
+              A free account saves encounters and presets, adds portraits and backdrops, invites your players to campaigns, and gives every fight a shareable visual
+              view.
+            </p>
+          </div>
+          <Link to="/login" state={{ mode: 'register' }} className="dnd-button-primary px-8 py-3 text-base shadow-glow-teal">
+            Begin Your Legend
+          </Link>
+        </section>
+      </div>
+
+      <ShareDialog open={sharing} onClose={() => setSharing(false)} url={playUrl} enabled={null} onOpenWindow={() => openPlayerWindow(playUrl)} />
+      <ConfirmDelete
         open={confirmReset}
         onClose={() => setConfirmReset(false)}
-        title="Reset the demo?"
-        body="Puts the ambush back the way it started."
+        title="Reset Demo"
         confirmLabel="Reset"
+        body="Put the ambush back the way it started?"
         onConfirm={() => {
           resetDemo()
           setConfirmReset(false)
         }}
       />
-    </AppShell>
+    </Layout>
   )
 }

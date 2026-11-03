@@ -1,38 +1,39 @@
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { TitleScreen } from '@/components/layout/TitleScreen'
-import { ButtonLink } from '@/components/ui/Button'
-import { PageLoader } from '@/components/ui/display'
+import { DoorClosed } from 'lucide-react'
+import { MessageScreen } from '@/components/ui/Scene'
+import { FullScreenLoader } from '@/components/ui/tokens'
 import { keys, useEncounterPings, useSharedEncounter } from '@/features/encounters/queries'
-import { PlayerBoard } from '@/features/play/PlayerBoard'
+import { DisplayView } from '@/features/play/DisplayView'
 
+/** The display window from the share link: no account needed, read-only. */
 export default function PlayPage() {
   const { token = '' } = useParams()
   const qc = useQueryClient()
   const { data, isPending, isError } = useSharedEncounter(token)
   useEncounterPings(token, () => qc.invalidateQueries({ queryKey: keys.shared(token) }))
 
-  if (isPending) return <PageLoader label="Entering the battlefield" />
+  if (isPending) return <FullScreenLoader label="Entering the battlefield…" />
 
   if (isError || !data) {
     return (
-      <TitleScreen
-        title={
-          <>
-            This table
-            <br />
-            is closed
-          </>
+      <MessageScreen
+        icon={<DoorClosed className="h-12 w-12 text-dnd-muted" />}
+        title="This table is closed"
+        body={isError ? 'We couldn’t reach the table. Check your connection and refresh.' : 'The link may be wrong, or your DM has turned off the visual view.'}
+        actions={
+          <Link to="/" className="dnd-button-primary">
+            Go to Karsus
+          </Link>
         }
-        lede={
-          isError
-            ? 'We couldn’t reach the table. Check your connection and refresh.'
-            : 'The link may be wrong, or your DM has turned off the player view.'
-        }
-        actions={<ButtonLink to="/">Go to Karsus</ButtonLink>}
       />
     )
   }
 
-  return <PlayerBoard encounter={data} />
+  return (
+    <>
+      <title>{`${data.title} · Karsus`}</title>
+      <DisplayView encounter={data} />
+    </>
+  )
 }
