@@ -34,6 +34,8 @@ export interface Services {
   live: Live
   images: Images | null
   mail: Mail | null
+  /** Outgoing HTTP (the D&D Beyond import); tests swap in a fake. */
+  fetch: typeof fetch
   now(): Date
   log: Logger
 }
@@ -60,6 +62,7 @@ export function createServices(config: Config, log: Logger = console): Services 
     live: config.webPubSub ? webPubSubLive(config.webPubSub.connectionString, config.webPubSub.hub, log) : noLive,
     images: config.storage ? blobImages(config.storage.connectionString, config.storage.container) : null,
     mail: config.mail ? acsMail(config.mail.connectionString, config.mail.sender) : config.dev ? consoleMail : null,
+    fetch: (input, init) => fetch(input, init),
     now: () => new Date(),
     log,
   }
@@ -131,6 +134,8 @@ function unavailableStore(): Store {
     createTable: fail,
     replaceTable: fail,
     deleteTable: fail,
+    listJoinedTables: fail,
+    listCampaignEncounters: fail,
     getEntry: fail,
     createEntry: fail,
     putEntry: fail,

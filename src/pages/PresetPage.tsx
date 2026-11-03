@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Heart, Pencil, Play, Plus, Shield, Trash2, Users, Zap } from 'lucide-react'
-import { AppShell } from '@/components/layout/AppShell'
-import { Button, ButtonLink, IconButton } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/Dialog'
-import { Avatar, EmptyState, PageLoader } from '@/components/ui/display'
+import { Eye, EyeOff, Heart, Pencil, Play, Plus, ScrollText, Shield, Trash2, Users, Zap } from 'lucide-react'
+import ConfirmDelete from '@/components/ui/ConfirmDelete'
+import Layout, { PageHeader } from '@/components/ui/Layout'
+import { Token } from '@/components/ui/tokens'
+import { CharacterSheetDialog } from '@/features/characters/CharacterSheetDialog'
 import { CreatureFormDialog, type CreatureFormTarget } from '@/features/combat/CreatureFormDialog'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
 import { NotFoundError } from '@/features/encounters/queries'
-import { SceneHeader } from '@/features/encounters/SceneHeader'
-import { useLaunchPreset, usePreset, usePresetMutations } from '@/features/presets/queries'
+import { MembersPanel } from '@/features/members/MembersPanel'
+import { presetKeys, useLaunchPreset, usePreset, usePresetMutations } from '@/features/presets/queries'
+import { cn } from '@/lib/cn'
 import { formatModifier } from '@/lib/dice'
 import { uploadImage } from '@/lib/images'
+import { classSummary } from '@/lib/sheet'
 import type { Creature } from '@/lib/types'
 
 export default function PresetPage() {
@@ -22,99 +24,151 @@ export default function PresetPage() {
   const launch = useLaunchPreset()
   const [editing, setEditing] = useState(false)
   const [formTarget, setFormTarget] = useState<CreatureFormTarget | null>(null)
+  const [sheetFor, setSheetFor] = useState<Creature | null>(null)
   const [removing, setRemoving] = useState<Creature | null>(null)
 
-  if (isPending) return <AppShell><PageLoader label="Loading preset" /></AppShell>
-  if (error || !preset) {
+  if (isPending) {
     return (
-      <AppShell>
-        <div className="border-l-4 border-accent py-6 pl-6">
-          <h1 className="display text-4xl text-vellum">{error instanceof NotFoundError ? 'Preset not found' : 'Something went wrong'}</h1>
-          <ButtonLink to="/" className="mt-6">Back</ButtonLink>
+      <Layout>
+        <div className="flex h-64 items-center justify-center">
+          <div className="animate-pulse font-body tracking-widest text-dnd-gold">Loading preset…</div>
         </div>
-      </AppShell>
+      </Layout>
     )
   }
 
-  // Party first, then monsters, alphabetically — presets have no turn order yet.
+  if (error || !preset) {
+    return (
+      <Layout>
+        <div className="py-20 text-center">
+          <p className="font-body text-dnd-red">{error instanceof NotFoundError ? 'Preset not found.' : (error?.message ?? 'Something went wrong.')}</p>
+          <button type="button" onClick={() => navigate('/')} className="dnd-button-secondary mt-4">
+            ‹ Back
+          </button>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Party first, then monsters, alphabetically: presets have no turn order yet.
   const sorted = [...preset.creatures].sort((a, b) => Number(b.is_player) - Number(a.is_player) || a.name.localeCompare(b.name))
+  const playerName = (userId: string | null) => (userId ? preset.members.find((x) => x.user_id === userId)?.username : undefined)
+  const pcs = sorted.filter((c) => c.is_player).length
 
   return (
-    <AppShell>
+    <Layout title={preset.name}>
       <title>{`${preset.name} · Karsus`}</title>
-      <SceneHeader
-        title={preset.name}
-        description={preset.description}
-        background={preset.background_url}
-        backTo="/"
-        backLabel="Your table"
-        actions={
-          <>
-            <Button variant="ghost" onClick={() => setEditing(true)}>
-              <Pencil /> Edit
-            </Button>
-            <Button
-              variant="primary"
-              disabled={launch.isPending || preset.creatures.length === 0}
-              onClick={async () => navigate(`/encounters/${await launch.mutateAsync(id)}`)}
-            >
-              <Play /> Launch encounter
-            </Button>
-          </>
-        }
-      />
+      {preset.background_url && (
+        <div className="pointer-events-none fixed inset-0 z-0 opacity-10">
+          <img src={preset.background_url} alt="" className="h-full w-full object-cover" />
+        </div>
+      )}
 
-      <section aria-labelledby="roster">
-        <div className="mb-4 flex items-end gap-3 border-b border-line pb-3">
-          <h2 id="roster" className="display text-3xl text-vellum">Roster</h2>
-          <span className="tabular cmd pb-0.5 text-sm text-ink-faint">{sorted.length}</span>
-          <div className="flex-1" />
-          <Button size="sm" onClick={() => setFormTarget({ mode: 'add' })}>
-            <Plus /> Add creature
-          </Button>
+      <div className="relative z-10 space-y-6">
+        <PageHeader
+          back={{ to: '/', label: 'Back' }}
+          eyebrow={preset.members.length ? 'Campaign' : 'Preset'}
+          title={preset.name}
+          description={preset.description}
+          actions={
+            <>
+              <button type="button" onClick={() => setEditing(true)} className="dnd-button-secondary px-4 py-2 text-sm">
+                <Pencil className="h-4 w-4" /> Edit Preset
+              </button>
+              <button type="button" onClick={() => m.update.mutate({ hidden: !preset.hidden })} className="dnd-button-secondary px-4 py-2 text-sm">
+                {preset.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} {preset.hidden ? 'Show to Players' : 'Hide from Players'}
+              </button>
+              <button
+                type="button"
+                onClick={async () => navigate(`/encounters/${await launch.mutateAsync(id)}`)}
+                disabled={launch.isPending || preset.creatures.length === 0}
+                className="dnd-button-primary px-4 py-2 text-sm"
+              >
+                <Play className="h-4 w-4" /> {launch.isPending ? 'Launching…' : 'Launch Encounter'}
+              </button>
+            </>
+          }
+        />
+
+        {preset.hidden && (
+          <p className="flex items-center gap-2 rounded-lg border border-purple-500/40 bg-purple-950/40 px-4 py-2 font-ui text-sm text-purple-200 italic">
+            <EyeOff className="h-4 w-4 shrink-0" /> Hidden: players can’t open this campaign or any encounter launched from it.
+          </p>
+        )}
+
+        <div className="dnd-card flex flex-wrap items-center justify-between gap-4 p-4">
+          <div className="flex gap-8">
+            <div>
+              <p className="font-body text-xs tracking-widest text-dnd-muted uppercase">Template Creatures</p>
+              <p className="font-display text-2xl text-dnd-gold">{sorted.length}</p>
+            </div>
+            <div>
+              <p className="font-body text-xs tracking-widest text-dnd-muted uppercase">Players</p>
+              <p className="font-display text-2xl text-dnd-jade">{preset.members.filter((x) => x.role === 'player').length}</p>
+            </div>
+          </div>
+          <p className="max-w-md font-ui text-sm text-dnd-muted italic">
+            Launching creates a new encounter with all these creatures: monsters roll initiative, the party keeps theirs. {pcs > 0 && 'Players see it unless you hide it.'}
+          </p>
         </div>
 
-        {sorted.length === 0 ? (
-          <EmptyState
-            icon={<Users />}
-            title="An empty roster"
-            body="Add your party or a band of monsters. When you launch, monsters roll initiative automatically."
-            action={<Button variant="primary" onClick={() => setFormTarget({ mode: 'add' })}><Plus /> Add creature</Button>}
-          />
-        ) : (
-          <ul className="grid gap-px bg-line sm:grid-cols-2">
-            {sorted.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 bg-panel p-3">
-                <Avatar name={c.name} src={c.image_url} size={44} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-baseline gap-2">
-                    <span className="display truncate text-2xl text-ink">{c.name}</span>
-                    {c.is_player && <span className="cmd shrink-0 text-xs text-ink-faint">PC</span>}
-                  </p>
-                  <p className="tabular cmd mt-1 flex gap-4 text-xs text-ink-muted">
-                    <span className="flex items-center gap-1" title="Initiative bonus"><Zap className="size-3" />{formatModifier(c.initiative_bonus)}</span>
-                    {c.max_hp !== null && <span className="flex items-center gap-1" title="Max HP"><Heart className="size-3" />{c.max_hp}</span>}
-                    {c.armor_class !== null && <span className="flex items-center gap-1" title="Armor class"><Shield className="size-3" />{c.armor_class}</span>}
-                  </p>
-                </div>
-                <IconButton label={`Edit ${c.name}`} size="icon-sm" onClick={() => setFormTarget({ mode: 'edit', creature: c })}>
-                  <Pencil />
-                </IconButton>
-                <IconButton label={`Remove ${c.name}`} size="icon-sm" onClick={() => setRemoving(c)} className="hover:text-signal">
-                  <Trash2 />
-                </IconButton>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <section aria-labelledby="creatures">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 id="creatures" className="font-body text-lg tracking-widest text-dnd-parchment uppercase">
+                Creatures <span className="text-sm text-dnd-muted">({sorted.length})</span>
+              </h2>
+              <button type="button" onClick={() => setFormTarget({ mode: 'add' })} className="dnd-button-secondary px-3 py-1.5 text-sm">
+                <Plus className="h-4 w-4" /> Add Creature
+              </button>
+            </div>
+
+            {sorted.length === 0 ? (
+              <div className="dnd-card p-10 text-center">
+                <p className="font-ui text-dnd-muted italic">No creatures yet. Build your template, or invite players to make their own characters!</p>
+                <button type="button" onClick={() => setFormTarget({ mode: 'add' })} className="dnd-button-secondary mt-4 text-sm">
+                  <Plus className="h-4 w-4" /> Add Creature
+                </button>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {sorted.map((c) => (
+                  <CreatureCard
+                    key={c.id}
+                    creature={c}
+                    playedBy={playerName(c.player_id)}
+                    onEdit={() => setFormTarget({ mode: 'edit', creature: c })}
+                    onSheet={() => setSheetFor(c)}
+                    onToggleHidden={() => m.updateCreature.mutate({ cid: c.id, patch: { hidden: !c.hidden } })}
+                    onDelete={() => setRemoving(c)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-labelledby="players" className="dnd-card p-5">
+            <h2 id="players" className="mb-4 flex items-center gap-2 font-body text-lg tracking-widest text-dnd-parchment uppercase">
+              <Users className="h-5 w-5 text-dnd-jade" /> Players
+            </h2>
+            <MembersPanel
+              kind="campaign"
+              base={`presets/${id}`}
+              queryKey={presetKeys.preset(id)}
+              members={preset.members}
+              invites={preset.invites}
+              creatures={preset.creatures}
+            />
+          </section>
+        </div>
+      </div>
 
       <EncounterFormDialog
         open={editing}
         onClose={() => setEditing(false)}
-        heading="Edit preset"
-        nameLabel="Preset name"
-        submitLabel="Save"
+        heading="Edit Preset"
+        nameLabel="Preset Name"
+        submitLabel="Save Changes"
         initial={{ title: preset.name, description: preset.description, background_url: preset.background_url }}
         upload={uploadImage}
         onSubmit={({ title, ...rest }) => m.update.mutateAsync({ name: title, ...rest })}
@@ -128,18 +182,94 @@ export default function PresetPage() {
         onEdit={(cid, patch) => m.updateCreature.mutate({ cid, patch })}
         upload={uploadImage}
       />
-      <ConfirmDialog
+      <CharacterSheetDialog
+        open={sheetFor !== null}
+        onClose={() => setSheetFor(null)}
+        title={sheetFor ? `${sheetFor.name}’s Sheet` : ''}
+        submitLabel="Save Sheet"
+        initial={sheetFor}
+        upload={uploadImage}
+        onSubmit={({ initiative: _unused, ...patch }) => m.updateCreature.mutateAsync({ cid: sheetFor!.id, patch })}
+      />
+      <ConfirmDelete
         open={removing !== null}
         onClose={() => setRemoving(null)}
-        title={`Remove ${removing?.name ?? ''}?`}
-        body="They’ll be removed from this preset. Encounters already launched from it aren’t affected."
+        title="Remove Creature"
         confirmLabel="Remove"
-        pending={m.removeCreature.isPending}
+        loading={m.removeCreature.isPending}
+        body={
+          removing?.player_id
+            ? `${playerName(removing.player_id) ?? 'Their player'} will need to pick another character. Encounters already launched aren’t affected.`
+            : `Remove “${removing?.name}” from this preset? Encounters already launched from it aren’t affected.`
+        }
         onConfirm={async () => {
-          if (removing) await m.removeCreature.mutateAsync(removing.id)
+          if (removing) await m.removeCreature.mutateAsync(removing.id).catch(() => {})
           setRemoving(null)
         }}
       />
-    </AppShell>
+    </Layout>
+  )
+}
+
+interface CreatureCardProps {
+  creature: Creature
+  playedBy?: string
+  onEdit: () => void
+  onSheet: () => void
+  onToggleHidden: () => void
+  onDelete: () => void
+}
+
+/** A preset's creature: token, stats, who plays it. Tools appear on hover (always on a phone). */
+function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, onDelete }: CreatureCardProps) {
+  const btn = 'rounded-lg p-1.5 text-dnd-muted transition-colors hover:bg-dnd-card'
+  return (
+    <li className={cn('dnd-card group relative overflow-hidden transition-all duration-300', c.hidden && 'border-dashed opacity-70')}>
+      <div className="flex items-center gap-3 p-3">
+        <Token name={c.name} src={c.image_url} isPlayer={c.is_player} size={56} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate font-body text-sm font-medium text-dnd-parchment">{c.name}</span>
+            {c.is_player && <span className="rounded border border-dnd-gold/40 px-1.5 text-[10px] tracking-widest text-dnd-gold uppercase">PC</span>}
+            {c.hidden && <span className="rounded border border-purple-500/50 px-1.5 text-[10px] tracking-widest text-purple-300 uppercase">Hidden</span>}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-dnd-muted">
+            {c.sheet && c.sheet.classes.length > 0 && <span>{classSummary(c.sheet.classes)}</span>}
+            <span className="flex items-center gap-0.5" title="Initiative bonus">
+              <Zap className="h-3 w-3 text-dnd-amber" /> {formatModifier(c.initiative_bonus)}
+            </span>
+            {c.max_hp !== null && (
+              <span className="flex items-center gap-0.5" title="Max HP">
+                <Heart className="h-3 w-3 text-red-400" /> {c.max_hp}
+              </span>
+            )}
+            {c.armor_class !== null && (
+              <span className="flex items-center gap-0.5" title="Armor class">
+                <Shield className="h-3 w-3 text-blue-400" /> {c.armor_class}
+              </span>
+            )}
+          </div>
+          {c.is_player && <p className="mt-0.5 font-ui text-[11px] text-dnd-jade/80 italic">{playedBy ? `Played by ${playedBy}` : 'Nobody plays them yet'}</p>}
+          {c.notes && <p className="mt-0.5 truncate font-ui text-[11px] text-dnd-muted/70 italic">{c.notes}</p>}
+        </div>
+
+        <div className="flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-sm:opacity-100">
+          <button type="button" onClick={onToggleHidden} className={cn(btn, 'hover:text-purple-300')} aria-label={c.hidden ? `Show ${c.name} to players` : `Hide ${c.name} from players`} title={c.hidden ? 'Show to players' : 'Hide from players'}>
+            {c.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+          {c.is_player && (
+            <button type="button" onClick={onSheet} className={cn(btn, 'hover:text-dnd-jade')} aria-label={`Character sheet for ${c.name}`} title="Character sheet">
+              <ScrollText className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button type="button" onClick={onEdit} className={cn(btn, 'hover:text-dnd-gold')} aria-label={`Edit ${c.name}`} title="Edit">
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button type="button" onClick={onDelete} className={cn(btn, 'hover:text-dnd-red')} aria-label={`Remove ${c.name}`} title="Delete">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </li>
   )
 }

@@ -1,81 +1,93 @@
 import { useState, type FormEvent } from 'react'
-import { Dialog } from '@/components/ui/Dialog'
-import { Button } from '@/components/ui/Button'
-import { Field, Input, Textarea } from '@/components/ui/Field'
-import { ImagePicker } from '@/components/ui/ImagePicker'
+import ImageUpload from '@/components/ui/ImageUpload'
+import Modal from '@/components/ui/Modal'
 import type { ImageKind } from '@/lib/images'
-
-export interface SceneFields {
-  title: string
-  description: string | null
-  background_url: string | null
-}
+import type { NewEncounter } from '@/lib/types'
 
 interface EncounterFormDialogProps {
   open: boolean
   onClose: () => void
   heading: string
-  nameLabel?: string
+  nameLabel: string
   submitLabel: string
-  initial?: Partial<SceneFields>
-  onSubmit: (values: SceneFields) => unknown
+  initial?: Partial<NewEncounter>
   upload?: (file: File, kind: ImageKind) => Promise<string>
+  onSubmit: (values: NewEncounter) => Promise<unknown> | unknown
+  placeholder?: string
 }
 
-/** Name, description and backdrop — shared by encounters and presets. */
+/** Name, description and backdrop: the same three fields for encounters and presets. */
 export function EncounterFormDialog({ open, onClose, heading, ...rest }: EncounterFormDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} title={heading}>
-      {open && <SceneForm onClose={onClose} {...rest} />}
-    </Dialog>
+    <Modal open={open} onClose={onClose} title={heading}>
+      {open && <EncounterForm onClose={onClose} {...rest} />}
+    </Modal>
   )
 }
 
-function SceneForm({
-  onClose,
-  nameLabel = 'Name',
-  submitLabel,
-  initial,
-  onSubmit,
-  upload,
-}: Omit<EncounterFormDialogProps, 'open' | 'heading'>) {
+function EncounterForm({ onClose, nameLabel, submitLabel, initial, upload, onSubmit, placeholder = 'The Final Showdown' }: Omit<EncounterFormDialogProps, 'open' | 'heading'>) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [background, setBackground] = useState(initial?.background_url ?? null)
-  const [pending, setPending] = useState(false)
+  const [background, setBackground] = useState<string | null>(initial?.background_url ?? null)
+  const [submitting, setSubmitting] = useState(false)
+  const error = title.trim() ? undefined : `${nameLabel} is required`
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (!title.trim()) return
-    setPending(true)
+    if (error) return
+    setSubmitting(true)
     try {
       await onSubmit({ title: title.trim(), description: description.trim() || null, background_url: background })
       onClose()
+    } catch {
+      // The mutation already showed the error; keep the form open to fix it.
     } finally {
-      setPending(false)
+      setSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <Field label={nameLabel}>
-        {(p) => (
-          <Input {...p} data-autofocus required maxLength={120} value={title} placeholder="Ambush at Hollow Ford" onChange={(e) => setTitle(e.target.value)} />
-        )}
-      </Field>
-      <Field label="Scene description" hint="Shown under the title on the player view.">
-        {(p) => (
-          <Textarea {...p} rows={2} maxLength={2000} value={description} placeholder="Rain lashes the river crossing…" onChange={(e) => setDescription(e.target.value)} />
-        )}
-      </Field>
-      <ImagePicker label="Backdrop" kind="background" value={background} onChange={setBackground} upload={upload} />
-      <div className="flex justify-end gap-2 pt-1">
-        <Button variant="ghost" onClick={onClose}>
+    <form onSubmit={submit} className="space-y-5 p-6" noValidate>
+      <div>
+        <label htmlFor="encounter-title" className="dnd-label">
+          {nameLabel} *
+        </label>
+        <input
+          id="encounter-title"
+          data-autofocus
+          className="dnd-input"
+          value={title}
+          maxLength={120}
+          placeholder={placeholder}
+          aria-invalid={title && error ? true : undefined}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="encounter-description" className="dnd-label">
+          Description
+        </label>
+        <textarea
+          id="encounter-description"
+          rows={3}
+          maxLength={2000}
+          className="dnd-input resize-none"
+          value={description}
+          placeholder="A brief description of the scene…"
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+
+      <ImageUpload label="Background Image" kind="background" value={background} onChange={setBackground} upload={upload} />
+
+      <div className="flex gap-3 pt-2">
+        <button type="button" onClick={onClose} className="dnd-button-secondary flex-1">
           Cancel
-        </Button>
-        <Button type="submit" variant="primary" disabled={!title.trim() || pending}>
-          {pending ? 'Saving…' : submitLabel}
-        </Button>
+        </button>
+        <button type="submit" disabled={Boolean(error) || submitting} className="dnd-button-primary flex-1">
+          {submitting ? 'Saving…' : submitLabel}
+        </button>
       </div>
     </form>
   )

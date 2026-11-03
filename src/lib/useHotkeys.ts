@@ -28,7 +28,7 @@ export function useHotkeys(map: HotkeyMap, enabled = true) {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return
       const target = e.target as HTMLElement | null
-      if (target?.closest(TYPING) || document.querySelector('dialog[open]')) return
+      if (target?.closest(TYPING) || document.querySelector('[role="dialog"][aria-modal="true"]')) return
       if ((e.key === ' ' || e.key === 'Enter') && target?.closest(ACTIVATES_ON_KEY)) return
 
       const handler = latest.current[describe(e)]

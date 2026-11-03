@@ -1,5 +1,21 @@
 import { HttpError } from '../http'
-import type { Condition, CreaturePatch, EncounterPatch, NewCreature, NewEncounter, PresetFields } from '@/lib/types'
+import { ABILITY_KEYS, SKILL_KEYS } from '@/lib/sheet'
+import type {
+  Ability,
+  CharacterChoice,
+  CharacterSheet,
+  Condition,
+  CreaturePatch,
+  EncounterPatch,
+  Mode,
+  NewCreature,
+  NewEncounter,
+  PresetFields,
+  PresetPatch,
+  Proficiency,
+  Role,
+  Skill,
+} from '@/lib/types'
 
 // Hand-written parsers for every body the API accepts. Only whitelisted fields
 // pass; anything malformed is a 400 with a sentence the UI can show.
@@ -72,6 +88,7 @@ export function encounterPatch(body: Body): EncounterPatch {
     round: (v) => int(v, 'Round', 1, 10_000),
     active_creature_id: (v) => (v === null ? null : text(v, 'Active creature', 64, 1)),
     share_enabled: (v) => bool(v, 'Sharing'),
+    hidden: (v) => bool(v, 'Hidden'),
   })
 }
 
@@ -83,8 +100,68 @@ export function newPreset(body: Body): PresetFields {
   }
 }
 
-export function presetPatch(body: Body): Partial<PresetFields> {
-  return pick<PresetFields>(body, { name: (v) => text(v, 'Name', 120, 1), ...sceneParsers })
+export function presetPatch(body: Body): PresetPatch {
+  return pick<PresetPatch>(body, { name: (v) => text(v, 'Name', 120, 1), ...sceneParsers, hidden: (v) => bool(v, 'Hidden') })
+}
+
+// ─── Character sheets ────────────────────────────────────────────────────────
+
+function list(v: unknown, field: string, max: number): unknown[] {
+  if (!Array.isArray(v)) return bad(`${field} must be a list`)
+  if (v.length > max) return bad(`${field} can have at most ${max} entries`)
+  return v
+}
+
+function object(v: unknown, field: string): Body {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return bad(`${field} must be an object`)
+  return v as Body
+}
+
+function ability(v: unknown, field: string): Ability {
+  if (!ABILITY_KEYS.includes(v as Ability)) return bad(`${field} must be one of ${ABILITY_KEYS.join(', ')}`)
+  return v as Ability
+}
+
+function slots(v: unknown, field: string) {
+  const s = object(v, field)
+  const max = int(s.max, `${field} total`, 0, 20)
+  return { level: int(s.level, `${field} level`, 1, 9), max, used: Math.min(max, int(s.used ?? 0, `${field} used`, 0, 20)) }
+}
+
+/** A whole sheet: the form always sends every part, so nothing here is partial. */
+export function sheet(v: unknown): CharacterSheet {
+  const s = object(v, 'Character sheet')
+  const scores = object(s.abilities, 'Ability scores')
+  const skills = object(s.skills ?? {}, 'Skills')
+  const abilities = {} as Record<Ability, number>
+  for (const key of ABILITY_KEYS) abilities[key] = int(scores[key], `${key.toUpperCase()} score`, 1, 30)
+  const skillOut: Partial<Record<Skill, Proficiency>> = {}
+  for (const [key, level] of Object.entries(skills)) {
+    if (!SKILL_KEYS.includes(key as Skill)) return bad(`Unknown skill ${key}`)
+    if (level !== 'proficient' && level !== 'expertise') return bad('Skills are proficient or expertise')
+    skillOut[key as Skill] = level
+  }
+  return {
+    species: optionalText(s.species ?? null, 'Species', 60),
+    background: optionalText(s.background ?? null, 'Background', 60),
+    classes: list(s.classes ?? [], 'Classes', 12).map((c) => {
+      const o = object(c, 'Class')
+      return { name: text(o.name, 'Class', 40, 1), subclass: optionalText(o.subclass ?? null, 'Subclass', 60), level: int(o.level, 'Class level', 1, 20) }
+    }),
+    speed: optionalInt(s.speed ?? null, 'Speed', 0, 500),
+    abilities,
+    saves: [...new Set(list(s.saves ?? [], 'Saving throws', 6).map((a) => ability(a, 'Saving throw')))],
+    skills: skillOut,
+    spellcasting_ability: s.spellcasting_ability == null ? null : ability(s.spellcasting_ability, 'Spellcasting ability'),
+    spell_slots: list(s.spell_slots ?? [], 'Spell slots', 9).map((x) => slots(x, 'Spell slots')),
+    pact_slots: s.pact_slots == null ? null : slots(s.pact_slots, 'Pact slots'),
+    inventory: list(s.inventory ?? [], 'Inventory', 200).map((x) => {
+      const o = object(x, 'Item')
+      return { name: text(o.name, 'Item name', 80, 1), quantity: int(o.quantity ?? 1, 'Quantity', 0, 9999), equipped: o.equipped === true }
+    }),
+    player_notes: optionalText(s.player_notes ?? null, 'Notes', 8000),
+    source_url: httpsUrl(s.source_url ?? null, 'Source link'),
+  }
 }
 
 // ─── Creatures ───────────────────────────────────────────────────────────────
@@ -117,6 +194,18 @@ const creatureParsers: { [K in keyof CreaturePatch]-?: (v: unknown) => CreatureP
   conditions,
   notes: (v) => optionalText(v, 'Notes', 4000),
   image_url: (v) => httpsUrl(v, 'Portrait'),
+  hidden: (v) => bool(v, 'Hidden'),
+  sheet: (v) => (v === null ? null : sheet(v)),
+}
+
+/** What a player may change about their own character, in a campaign and in a fight. */
+export const PLAYER_SHEET_FIELDS = ['name', 'image_url', 'initiative_bonus', 'max_hp', 'armor_class', 'sheet'] as const
+export const PLAYER_COMBAT_FIELDS = ['current_hp', 'temp_hp', 'conditions'] as const
+
+export function onlyFields(patch: CreaturePatch, allowed: readonly (keyof CreaturePatch)[]): CreaturePatch {
+  const extra = Object.keys(patch).filter((k) => !allowed.includes(k as keyof CreaturePatch))
+  if (extra.length) throw new HttpError(403, 'Only the DM can change that')
+  return patch
 }
 
 export function creaturePatch(body: Body): CreaturePatch {
@@ -129,10 +218,35 @@ export function newCreatures(body: Body): NewCreature[] {
   if (list.length > 50) return bad('Add at most 50 creatures at a time')
   return list.map((c) => {
     if (typeof c !== 'object' || c === null || Array.isArray(c)) return bad('Each creature must be an object')
-    const patch = creaturePatch(c as Body)
-    if (patch.name === undefined) return bad('Every creature needs a name')
-    return { ...patch, name: patch.name }
+    return newCreature(c as Body)
   })
+}
+
+function newCreature(body: Body): NewCreature {
+  const patch = creaturePatch(body)
+  if (patch.name === undefined) return bad('Every creature needs a name')
+  return { ...patch, name: patch.name }
+}
+
+export function characterChoice(body: Body): CharacterChoice {
+  if (typeof body.claim === 'string') return { claim: text(body.claim, 'Character', 64, 1) }
+  if (body.create !== undefined) {
+    // A player's own character is always a visible PC.
+    return { create: { ...newCreature(object(body.create, 'Character')), is_player: true, hidden: false } }
+  }
+  return bad('Pick a character or create one')
+}
+
+// ─── Membership ──────────────────────────────────────────────────────────────
+
+export function role(v: unknown): Role {
+  if (v !== 'player' && v !== 'dm') return bad('Role must be player or dm')
+  return v
+}
+
+export function mode(v: unknown): Mode {
+  if (v !== 'player' && v !== 'dm') return bad('Mode must be player or dm')
+  return v
 }
 
 // ─── Accounts ────────────────────────────────────────────────────────────────

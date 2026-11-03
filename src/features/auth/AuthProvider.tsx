@@ -1,7 +1,7 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, isBackendConfigured } from '@/lib/api'
-import type { User } from '@/lib/types'
+import type { Mode, User } from '@/lib/types'
 
 interface AuthState {
   user: User | null
@@ -10,6 +10,9 @@ interface AuthState {
   loading: boolean
   /** Whether the server offers "Continue with Google". */
   googleSignIn: boolean
+  /** Which side of the table the app opens on. Remembered on the account, so every device agrees. */
+  mode: Mode
+  setMode: (mode: Mode) => void
   /** Called by the sign-in forms with the account the API just signed in. */
   signedIn: (user: User) => void
   signOut: () => Promise<void>
@@ -45,12 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [qc],
   )
 
+  const setMode = useCallback((mode: Mode) => {
+    // Switch at once; saving it is only so the next visit opens on the same side.
+    setUser((u) => (u ? { ...u, mode } : u))
+    api.patch('auth/me', { mode }).catch(() => {})
+  }, [])
+
   const value = useMemo<AuthState>(
     () => ({
       user,
       displayName: user?.username || user?.email.split('@')[0] || 'Adventurer',
       loading,
       googleSignIn,
+      mode: user?.mode ?? 'dm',
+      setMode,
       signedIn,
       signOut: async () => {
         await api.post('auth/signout')
@@ -58,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
       },
     }),
-    [user, loading, googleSignIn, signedIn, qc],
+    [user, loading, googleSignIn, setMode, signedIn, qc],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>
