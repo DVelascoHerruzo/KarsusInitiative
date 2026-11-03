@@ -183,9 +183,22 @@ describe('player view', () => {
     expect((await app.call('GET', `/api/play/${token}`)).status).toBe(200)
   })
 
+  it('shows only the party until combat starts, so the DM can set the scene', async () => {
+    const { app, api, id, token } = await shared()
+    await api('PATCH', `/api/encounters/${id}`, { body: { share_enabled: true } })
+    const before = (await app.call('GET', `/api/play/${token}`)).body
+    expect(before.creatures.map((c: { name: string }) => c.name)).toEqual(['Vex'])
+    expect(JSON.stringify(before)).not.toMatch(/Ogre/)
+
+    await api('POST', `/api/encounters/${id}/turn`, { body: { step: 1 } })
+    const after = (await app.call('GET', `/api/play/${token}`)).body
+    expect(after.creatures.map((c: { name: string }) => c.name)).toEqual(['Vex', 'Ogre'])
+  })
+
   it('never sends notes, monster HP or monster AC', async () => {
     const { app, api, id, token } = await shared()
     await api('PATCH', `/api/encounters/${id}`, { body: { share_enabled: true } })
+    await api('POST', `/api/encounters/${id}/turn`, { body: { step: 1 } })
     const view = (await app.call('GET', `/api/play/${token}`)).body
     expect(JSON.stringify(view)).not.toMatch(/secret|fire/i)
     expect(view.creatures.map((c: { name: string }) => c.name)).toEqual(['Vex', 'Ogre'])

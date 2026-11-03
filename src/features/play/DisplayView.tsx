@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, ChevronUp, Dices, Expand, Eye, Heart, Plus, Shield, Shrink, Sword, User } from 'lucide-react'
 import { HealthTag, HpBar, StatusPill, Token } from '@/components/ui/tokens'
-import { healthBand, nextUp, sortByInitiative } from '@/lib/combat'
+import { healthBand, nextUp, sortByInitiative, visibleToPlayers } from '@/lib/combat'
 import { hasCondition } from '@/lib/conditions'
 import { cn } from '@/lib/cn'
 import { useDisplayScreen } from '@/lib/theme'
@@ -11,7 +11,7 @@ import type { Encounter, SharedCreature, SharedEncounter } from '@/lib/types'
 
 /** Client-side redaction matching redact() in the API, used by the offline demo. */
 export function toSharedEncounter(e: Encounter): SharedEncounter {
-  const visible = e.creatures.filter((c) => !c.hidden)
+  const visible = visibleToPlayers(e.creatures, e.active_creature_id !== null)
   const active = visible.some((c) => c.id === e.active_creature_id) ? e.active_creature_id : null
   return {
     title: e.title,

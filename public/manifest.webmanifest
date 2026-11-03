@@ -1,0 +1,22 @@
+{
+  "name": "Karsus Initiative",
+  "short_name": "Karsus",
+  "description": "D&D initiative tracker: run encounters, track HP and conditions, and share the fight with your players.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050F14",
+  "theme_color": "#050F14",
+  "categories": ["games", "entertainment", "utilities"],
+  "icons": [
+    { "src": "/icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Your table", "url": "/", "icons": [{ "src": "/icons/app-192.png", "sizes": "192x192" }] },
+    { "name": "Demo", "url": "/demo", "icons": [{ "src": "/icons/app-192.png", "sizes": "192x192" }] }
+  ]
+}
