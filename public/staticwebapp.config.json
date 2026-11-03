@@ -13,7 +13,7 @@
     }
   ],
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' wss://*.webpubsub.azure.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' https://storage.ko-fi.com; style-src 'self' 'unsafe-inline' https://storage.ko-fi.com; img-src 'self' data: blob: https:; font-src 'self' https://storage.ko-fi.com; frame-src https://ko-fi.com; connect-src 'self' wss://*.webpubsub.azure.com https://ko-fi.com https://storage.ko-fi.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",

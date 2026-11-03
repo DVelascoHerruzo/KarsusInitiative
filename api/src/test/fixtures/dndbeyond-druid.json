@@ -1,0 +1,710 @@
+{
+ "id": 164667811,
+ "name": "Alekson",
+ "decorations": {
+  "avatarUrl": "https://www.dndbeyond.com/avatars/56989/21/1581111423-164667811.jpeg?width=150&height=150&fit=crop&quality=95&auto=webp"
+ },
+ "race": {
+  "fullName": "Elf",
+  "weightSpeeds": {
+   "normal": {
+    "walk": 30,
+    "fly": 0,
+    "burrow": 0,
+    "swim": 0,
+    "climb": 0
+   },
+   "encumbered": null,
+   "heavilyEncumbered": null,
+   "pushDragLift": null,
+   "override": null
+  }
+ },
+ "background": {
+  "definition": {
+   "name": "Haunted One"
+  },
+  "customBackground": null
+ },
+ "classes": [
+  {
+   "level": 10,
+   "definition": {
+    "name": "Druid",
+    "spellCastingAbilityId": 5
+   },
+   "subclassDefinition": {
+    "name": "Circle of the Land",
+    "spellCastingAbilityId": 5
+   }
+  }
+ ],
+ "stats": [
+  {
+   "id": 1,
+   "name": null,
+   "value": 8
+  },
+  {
+   "id": 2,
+   "name": null,
+   "value": 10
+  },
+  {
+   "id": 3,
+   "name": null,
+   "value": 12
+  },
+  {
+   "id": 4,
+   "name": null,
+   "value": 14
+  },
+  {
+   "id": 5,
+   "name": null,
+   "value": 15
+  },
+  {
+   "id": 6,
+   "name": null,
+   "value": 13
+  }
+ ],
+ "bonusStats": [
+  {
+   "id": 1,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 2,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 3,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 4,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 5,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 6,
+   "name": null,
+   "value": null
+  }
+ ],
+ "overrideStats": [
+  {
+   "id": 1,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 2,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 3,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 4,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 5,
+   "name": null,
+   "value": null
+  },
+  {
+   "id": 6,
+   "name": null,
+   "value": null
+  }
+ ],
+ "baseHitPoints": 53,
+ "bonusHitPoints": null,
+ "overrideHitPoints": null,
+ "modifiers": {
+  "race": [
+   {
+    "type": "set-base",
+    "subType": "darkvision",
+    "value": 60,
+    "statId": null
+   },
+   {
+    "type": "advantage",
+    "subType": "saving-throws",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "perception",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "immunity",
+    "subType": "magical-sleep",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "language",
+    "subType": "common",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "language",
+    "subType": "elvish",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "language",
+    "subType": "dwarvish",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "set",
+    "subType": "innate-speed-walking",
+    "value": 35,
+    "statId": null
+   },
+   {
+    "type": "bonus",
+    "subType": "intelligence-score",
+    "value": 2,
+    "statId": null
+   },
+   {
+    "type": "bonus",
+    "subType": "wisdom-score",
+    "value": 1,
+    "statId": null
+   }
+  ],
+  "class": [
+   {
+    "type": "proficiency",
+    "subType": "intelligence-saving-throws",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "wisdom-saving-throws",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "animal-handling",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "nature",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "simple-weapons",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "light-armor",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "shields",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "herbalism-kit",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "language",
+    "subType": "druidic",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "set",
+    "subType": "subclass",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "immunity",
+    "subType": "poisoned",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "bonus",
+    "subType": "arcana",
+    "value": null,
+    "statId": 5
+   },
+   {
+    "type": "bonus",
+    "subType": "nature",
+    "value": null,
+    "statId": 5
+   },
+   {
+    "type": "bonus",
+    "subType": "druid-cantrip-damage",
+    "value": null,
+    "statId": 5
+   },
+   {
+    "type": "resistance",
+    "subType": "lightning",
+    "value": null,
+    "statId": null
+   }
+  ],
+  "background": [
+   {
+    "type": "proficiency",
+    "subType": "survival",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "language",
+    "subType": "draconic",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "investigation",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "language",
+    "subType": "undercommon",
+    "value": null,
+    "statId": null
+   }
+  ],
+  "item": [
+   {
+    "type": "set",
+    "subType": "innate-speed-climbing",
+    "value": null,
+    "statId": null
+   }
+  ],
+  "feat": [
+   {
+    "type": "bonus",
+    "subType": "wisdom-score",
+    "value": 1,
+    "statId": null
+   },
+   {
+    "type": "bonus",
+    "subType": "wisdom-score",
+    "value": 1,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "medicine",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "woodcarvers-tools",
+    "value": null,
+    "statId": null
+   },
+   {
+    "type": "proficiency",
+    "subType": "cooks-utensils",
+    "value": null,
+    "statId": null
+   }
+  ],
+  "condition": []
+ },
+ "inventory": [
+  {
+   "quantity": 1,
+   "equipped": true,
+   "definition": {
+    "name": "Slippers of Spider Climbing",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Bag of Holding",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": true,
+   "definition": {
+    "name": "Shield",
+    "armorClass": 2,
+    "armorTypeId": 4
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": true,
+   "definition": {
+    "name": "Leather",
+    "armorClass": 11,
+    "armorTypeId": 1
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Sickle",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Chest",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Clothes, Common",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Backpack",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Herbalism Kit",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": true,
+   "definition": {
+    "name": "Staff",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Immovable Rod",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Crowbar",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Hammer",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Holy Water (flask)",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Manacles",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Mirror, Steel",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Oil (flask)",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Tinderbox",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 3,
+   "equipped": false,
+   "definition": {
+    "name": "Torch",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 9,
+   "equipped": false,
+   "definition": {
+    "name": "Stake (Wooden)",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Holy Symbol",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 2,
+   "equipped": false,
+   "definition": {
+    "name": "Oil",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 10,
+   "equipped": false,
+   "definition": {
+    "name": "Rations",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Rope",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Bedroll",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Mason's Tools",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Tinderbox",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 10,
+   "equipped": false,
+   "definition": {
+    "name": "Torch",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 1,
+   "equipped": false,
+   "definition": {
+    "name": "Waterskin",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  },
+  {
+   "quantity": 4,
+   "equipped": false,
+   "definition": {
+    "name": "Healer's Kit",
+    "armorClass": null,
+    "armorTypeId": null
+   }
+  }
+ ],
+ "spellSlots": [
+  {
+   "level": 1,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 2,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 3,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 4,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 5,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 6,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 7,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 8,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 9,
+   "used": 0,
+   "available": 0
+  }
+ ],
+ "pactMagic": [
+  {
+   "level": 1,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 2,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 3,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 4,
+   "used": 0,
+   "available": 0
+  },
+  {
+   "level": 5,
+   "used": 0,
+   "available": 0
+  }
+ ]
+}

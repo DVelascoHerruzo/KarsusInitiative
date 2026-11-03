@@ -1,24 +1,18 @@
 import { useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Dices, Keyboard, Plus, RotateCcw, Swords, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dices, Keyboard, Plus, RotateCcw, Swords } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, IconButton } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/Dialog'
-import { Kbd } from '@/components/ui/display'
+import ConfirmDelete from '@/components/ui/ConfirmDelete'
 import { nextUp, sortByInitiative, type HpResult } from '@/lib/combat'
 import { d20Notation, rollDice } from '@/lib/dice'
 import type { ImageKind } from '@/lib/images'
 import type { Condition, Creature, CreaturePatch, Encounter, EncounterPatch, NewCreature } from '@/lib/types'
 import { useHotkeys } from '@/lib/useHotkeys'
 import { DicePanel } from '@/features/dice/DicePanel'
-import { Board, Cascade, CascadeRow } from './Cascade'
 import { ConditionsDialog } from './ConditionsDialog'
 import { CreatureFormDialog, type CreatureFormTarget } from './CreatureFormDialog'
+import CreatureRow from './CreatureRow'
 import { HpDialog, type HpMode } from './HpDialog'
-import { InitiativeRow } from './InitiativeRow'
 import { ShortcutsDialog } from './ShortcutsDialog'
-import { SpotlightCard } from './SpotlightCard'
-import { RoundBox, StageCaption } from './StageParts'
-import { TurnStage, useTurnDirection } from './TurnStage'
 
 export interface BoardActions {
   advance: (step: 1 | -1) => void
@@ -32,21 +26,22 @@ export interface BoardActions {
 interface EncounterBoardProps {
   encounter: Encounter
   actions: BoardActions
+  /** Usernames by account id, to show who plays each PC. */
+  playerNames?: ReadonlyMap<string, string>
 }
 
 /**
- * The DM's combat screen: the acting creature's portrait on the left wall, the
- * initiative order cascading down its edge, and a command column on the right.
- * Purely presentational over `actions`, so the live page (the Azure API) and the
- * offline demo (local state) share every pixel of it.
+ * The DM's combat screen: round and turn controls on top, then every creature
+ * in initiative order with inline editing, and the dice roller alongside.
+ * Purely presentational over `actions`, so the live page and the offline demo
+ * share it.
  */
-export function EncounterBoard({ encounter, actions }: EncounterBoardProps) {
+export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoardProps) {
   const ordered = useMemo(() => sortByInitiative(encounter.creatures), [encounter.creatures])
   const started = encounter.active_creature_id !== null
   const activeIdx = ordered.findIndex((c) => c.id === encounter.active_creature_id)
   const active = activeIdx >= 0 ? ordered[activeIdx]! : null
   const next = useMemo(() => nextUp(ordered, encounter.active_creature_id), [ordered, encounter.active_creature_id])
-  const direction = useTurnDirection({ round: encounter.round, index: activeIdx })
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = ordered.find((c) => c.id === selectedId) ?? active ?? ordered[0] ?? null
@@ -71,9 +66,7 @@ export function EncounterBoard({ encounter, actions }: EncounterBoardProps) {
   function applyHp(c: Creature, result: HpResult) {
     actions.updateCreature(c.id, result.patch)
     if (result.droppedToZero) toast(c.is_player ? `${c.name} falls unconscious` : `${c.name} is slain`)
-    if (result.concentrationDc) {
-      toast(`${c.name}: concentration check`, { description: `Constitution save, DC ${result.concentrationDc}` })
-    }
+    if (result.concentrationDc) toast(`${c.name}: concentration check`, { description: `Constitution save, DC ${result.concentrationDc}` })
   }
 
   function rollMonsters() {
@@ -110,121 +103,119 @@ export function EncounterBoard({ encounter, actions }: EncounterBoardProps) {
   })
 
   return (
-    <div className="xl:grid xl:h-[calc(100dvh-52px)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,380px)] xl:grid-rows-[auto_minmax(0,1fr)]">
-      {/* ── Turn: round, who's acting, the one button that matters ── */}
-      <section
-        aria-label="Turn"
-        className="sticky top-[52px] z-30 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line bg-panel p-4 xl:static xl:col-start-2 xl:row-start-1 xl:block xl:space-y-3 xl:border-l"
-      >
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <RoundBox round={encounter.round} />
-          <div className="min-w-0 flex-1 pt-1" aria-live="polite">
+    <div className="space-y-6">
+      {/* ── Round / turn controls ─────────────────────────────────── */}
+      <section aria-label="Turn" className="dnd-card flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="text-center">
+            <p className="font-body text-xs tracking-widest text-dnd-muted">ROUND</p>
+            <p className="font-display text-3xl text-dnd-gold">{encounter.round}</p>
+          </div>
+          <div className="text-center">
+            <p className="font-body text-xs tracking-widest text-dnd-muted">TURN</p>
+            <p className="font-display text-3xl text-dnd-parchment">
+              {activeIdx + 1}
+              <span className="text-lg text-dnd-muted">/{ordered.length}</span>
+            </p>
+          </div>
+          <div className="min-w-0" aria-live="polite">
+            <p className="font-body text-xs tracking-widest text-dnd-muted">{active ? 'ACTIVE' : 'STATUS'}</p>
             {active ? (
-              <p className="display line-clamp-2 text-xl leading-[1.15] text-vellum">
+              <p className="font-body text-dnd-parchment">
                 <span className="sr-only">Now acting: </span>
                 {active.name}
               </p>
             ) : (
-              <p className="cmd pt-1 text-lg text-ink">{ordered.length ? 'Combat hasn’t started' : 'No combatants yet'}</p>
+              <p className="font-ui text-dnd-parchment italic">{ordered.length ? 'Combat hasn’t started' : 'No combatants yet'}</p>
             )}
             {next && (
-              <p className="hint mt-1.5 truncate">
-                {started ? 'Then' : 'First up'} {next.name}
+              <p className="font-ui text-xs text-dnd-muted italic">
+                {started ? 'Then' : 'First up:'} {next.name}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex w-full items-center gap-1.5 sm:w-auto xl:w-full">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={rollMonsters} disabled={!ordered.length} className="dnd-button-ghost px-3" title="Roll initiative for every monster (I)">
+            <Dices className="h-4 w-4" /> <span className="max-sm:sr-only">Roll monsters</span>
+          </button>
+          {started && (
+            <button type="button" onClick={() => setConfirmReset(true)} className="dnd-button-ghost px-3" title="Reset combat">
+              <RotateCcw className="h-4 w-4" /> <span className="sr-only">Reset combat</span>
+            </button>
+          )}
+          <button type="button" onClick={() => setShowShortcuts(true)} className="dnd-button-ghost px-3 max-sm:hidden" title="Keyboard shortcuts (?)">
+            <Keyboard className="h-4 w-4" /> <span className="sr-only">Keyboard shortcuts</span>
+          </button>
           {started ? (
             <>
-              <Button onClick={() => step(-1)} aria-keyshortcuts="Shift+Space ArrowLeft" aria-label="Previous turn" className="px-3">
-                <ChevronLeft />
-              </Button>
-              <Button variant="primary" onClick={() => step(1)} aria-keyshortcuts="Space ArrowRight" className="flex-1 sm:min-w-44">
-                Next turn <ChevronRight />
-              </Button>
+              <button type="button" onClick={() => step(-1)} aria-keyshortcuts="Shift+Space ArrowLeft" className="dnd-button-secondary px-4 py-2">
+                <ChevronLeft className="h-4 w-4" /> Prev Turn
+              </button>
+              <button type="button" onClick={() => step(1)} aria-keyshortcuts="Space ArrowRight" className="dnd-button-primary px-4 py-2">
+                Next Turn <ChevronRight className="h-4 w-4" />
+              </button>
             </>
           ) : (
-            <Button variant="primary" onClick={() => step(1)} disabled={!ordered.length} aria-keyshortcuts="Space" className="flex-1 sm:min-w-44">
-              <Swords /> Start combat
-            </Button>
+            <button type="button" onClick={() => step(1)} disabled={!ordered.length} aria-keyshortcuts="Space" className="dnd-button-primary px-4 py-2">
+              <Swords className="h-4 w-4" /> Start Combat
+            </button>
           )}
-          <IconButton label="Roll initiative for all monsters (I)" onClick={rollMonsters} disabled={!ordered.length}>
-            <Dices />
-          </IconButton>
-          {started && (
-            <IconButton label="Reset combat" onClick={() => setConfirmReset(true)}>
-              <RotateCcw />
-            </IconButton>
-          )}
-          <IconButton label="Keyboard shortcuts (?)" onClick={() => setShowShortcuts(true)} className="hidden sm:inline-flex">
-            <Keyboard />
-          </IconButton>
         </div>
       </section>
 
-      {/* ── The stage and the cascade ─────────────────────────────── */}
-      <div className="relative isolate min-w-0 xl:col-start-1 xl:row-span-2 xl:row-start-1">
-        {encounter.background_url && (
-          <img src={encounter.background_url} alt="" className="absolute inset-0 -z-10 size-full object-cover opacity-20 mix-blend-luminosity" />
-        )}
-        <Board count={ordered.length + 1} className="[--pad-bottom:40px] [--pad-top:32px] [--stage-top:26cqw] lg:h-[max(560px,calc(100dvh-228px))] xl:h-full xl:[--stage-top:24cqw]">
-          <TurnStage
-            creature={active}
-            direction={direction}
-            caption={(c) => <StageCaption creature={c} turnLabel="Acting now" />}
-            idle={<StageIdle empty={ordered.length === 0} />}
-          />
-          <Cascade aria-label="Initiative order">
-            {ordered.map((c, i) => (
-              <InitiativeRow
-                key={c.id}
-                index={i}
-                creature={c}
-                active={c.id === active?.id}
-                selected={c.id === selected?.id}
-                isNext={c.id === next?.id}
-                onSelect={() => setSelectedId(c.id)}
-                onInitiative={(initiative) => actions.updateCreature(c.id, { initiative })}
-                onHp={() => setHpTarget({ id: c.id, mode: 'damage' })}
-                onConditions={() => setConditionsId(c.id)}
-              />
-            ))}
-            <CascadeRow index={ordered.length} className="flex items-center">
-              <Button variant="ghost" onClick={() => setFormTarget({ mode: 'add' })} aria-keyshortcuts="A" className="ml-1">
-                <Plus /> Add creature
-              </Button>
-            </CascadeRow>
-          </Cascade>
-        </Board>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* ── Creatures ──────────────────────────────────────────── */}
+        <section aria-labelledby="creatures-heading">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="creatures-heading" className="font-body text-lg tracking-widest text-dnd-parchment uppercase">
+              Creatures <span className="text-sm text-dnd-muted">({ordered.length})</span>
+            </h2>
+            <button type="button" onClick={() => setFormTarget({ mode: 'add' })} aria-keyshortcuts="A" className="dnd-button-secondary px-3 py-1.5 text-sm">
+              <Plus className="h-4 w-4" /> Add Creature
+            </button>
+          </div>
+
+          {ordered.length === 0 ? (
+            <div className="dnd-card p-10 text-center">
+              <p className="font-ui text-dnd-muted italic">No creatures yet. Add the combatants!</p>
+              <p className="mt-1 font-ui text-xs text-dnd-muted/70 italic">Leave initiative blank and it’s rolled for you.</p>
+              <button type="button" onClick={() => setFormTarget({ mode: 'add' })} className="dnd-button-secondary mt-4 text-sm">
+                <Plus className="h-4 w-4" /> Add Creature
+              </button>
+            </div>
+          ) : (
+            <ol className="space-y-1.5" aria-label="Initiative order">
+              {ordered.map((c) => (
+                <CreatureRow
+                  key={c.id}
+                  creature={c}
+                  isActive={c.id === active?.id}
+                  isNext={c.id === next?.id}
+                  selected={c.id === selected?.id}
+                  playedBy={c.player_id ? playerNames?.get(c.player_id) : undefined}
+                  onSelect={() => setSelectedId(c.id)}
+                  onSave={(patch) => actions.updateCreature(c.id, patch)}
+                  onDelete={() => setRemoveTarget(c)}
+                  onHp={() => setHpTarget({ id: c.id, mode: 'damage' })}
+                  onConditions={() => setConditionsId(c.id)}
+                  onEdit={() => setFormTarget({ mode: 'edit', creature: c })}
+                  upload={actions.upload}
+                />
+              ))}
+            </ol>
+          )}
+          <p className="mt-3 hidden font-ui text-xs text-dnd-muted/70 italic sm:block">
+            Space next turn · J/K select · D damage · H heal · C conditions · ? everything else
+          </p>
+        </section>
+
+        <DicePanel inputRef={diceInput} />
       </div>
 
-      {/* ── Command column ────────────────────────────────────────── */}
-      <aside className="flex flex-col border-t border-line bg-panel lg:grid lg:grid-cols-2 lg:items-start xl:col-start-2 xl:row-start-2 xl:flex xl:items-stretch xl:overflow-y-auto xl:border-t-0 xl:border-l">
-        <SpotlightCard
-          creature={selected}
-          isActive={selected !== null && selected.id === active?.id}
-          onDamage={() => selected && setHpTarget({ id: selected.id, mode: 'damage' })}
-          onHeal={() => selected && setHpTarget({ id: selected.id, mode: 'heal' })}
-          onConditions={() => selected && setConditionsId(selected.id)}
-          onEdit={() => selected && setFormTarget({ mode: 'edit', creature: selected })}
-          onRemove={() => selected && setRemoveTarget(selected)}
-        />
-        <DicePanel inputRef={diceInput} />
-        <p className="mt-auto hidden border-t border-line px-4 py-3 text-xs leading-6 text-ink-faint lg:col-span-2 lg:block">
-          <Kbd>Space</Kbd> next turn, <Kbd>J</Kbd> <Kbd>K</Kbd> select, <Kbd>D</Kbd> damage, <Kbd>H</Kbd> heal, <Kbd>C</Kbd> conditions,{' '}
-          <Kbd>?</Kbd> everything else
-        </p>
-      </aside>
-
       {/* ── Dialogs ─────────────────────────────────────────────────── */}
-      <HpDialog
-        creature={byId(hpTarget?.id)}
-        initialMode={hpTarget?.mode ?? 'damage'}
-        onClose={() => setHpTarget(null)}
-        onApply={applyHp}
-      />
+      <HpDialog creature={byId(hpTarget?.id)} initialMode={hpTarget?.mode ?? 'damage'} onClose={() => setHpTarget(null)} onApply={applyHp} />
       <ConditionsDialog
         creature={byId(conditionsId)}
         onClose={() => setConditionsId(null)}
@@ -239,56 +230,36 @@ export function EncounterBoard({ encounter, actions }: EncounterBoardProps) {
         onEdit={actions.updateCreature}
         upload={actions.upload}
       />
-      <ConfirmDialog
+      <ConfirmDelete
         open={removeTarget !== null}
         onClose={() => setRemoveTarget(null)}
-        title={`Remove ${removeTarget?.name ?? ''}?`}
-        body="They’ll be taken out of the initiative order. If it’s their turn, play passes to the next creature."
+        name={removeTarget?.name}
+        title="Remove Creature"
         confirmLabel="Remove"
+        body={
+          <>
+            Remove <span className="font-body text-dnd-gold">“{removeTarget?.name}”</span> from the fight?
+            <br />
+            <span className="text-sm text-dnd-muted">If it’s their turn, play passes to the next creature.</span>
+          </>
+        }
         onConfirm={() => {
           if (removeTarget) actions.removeCreature(removeTarget.id)
           setRemoveTarget(null)
         }}
       />
-      <ConfirmDialog
+      <ConfirmDelete
         open={confirmReset}
         onClose={() => setConfirmReset(false)}
-        title="Reset combat?"
-        body="Goes back to round 1 with no one acting. HP and conditions are kept."
+        title="Reset Combat"
         confirmLabel="Reset"
+        body="Go back to round 1 with no one acting? HP and conditions are kept."
         onConfirm={() => {
           actions.updateEncounter({ round: 1, active_creature_id: null })
           setConfirmReset(false)
         }}
       />
       <ShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-    </div>
-  )
-}
-
-/** The stage before anyone acts. */
-function StageIdle({ empty }: { empty: boolean }) {
-  return (
-    <div className="hatch absolute inset-0 flex flex-col justify-end gap-4 bg-raised pr-[14%] pb-[calc(var(--slant)*100cqw+12px)] pl-5 lg:pb-12 lg:pl-10">
-      {empty ? <Users className="size-9 text-accent" /> : <Swords className="size-9 text-accent" />}
-      <p className="display print text-[clamp(2.5rem,min(9cqh,6.5cqw),7rem)] leading-[1] text-vellum">
-        {empty ? (
-          <>
-            Gather the
-            <br />
-            combatants
-          </>
-        ) : (
-          <>
-            Roll for
-            <br />
-            initiative
-          </>
-        )}
-      </p>
-      <p className="max-w-xs text-ink-muted">
-        {empty ? 'Add your party and the monsters. Leave initiative blank and it’s rolled for you.' : 'Press Space or Start combat when everyone has rolled.'}
-      </p>
     </div>
   )
 }

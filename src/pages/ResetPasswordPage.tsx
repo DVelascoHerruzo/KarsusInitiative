@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
-import { TitleScreen } from '@/components/layout/TitleScreen'
-import { Button, ButtonLink } from '@/components/ui/Button'
-import { Field, Input } from '@/components/ui/Field'
+import { CenterScene, MessageScreen } from '@/components/ui/Scene'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { api } from '@/lib/api'
+import { useTealTheme } from '@/lib/theme'
 import type { User } from '@/lib/types'
 
 /** Landing page for the emailed reset link, which carries a one-time token. */
@@ -17,6 +16,7 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useTealTheme()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -34,46 +34,54 @@ export default function ResetPasswordPage() {
     }
   }
 
-  return token ? (
-    <TitleScreen
-      title={
-        <>
-          New
-          <br />
-          password
-        </>
-      }
-      lede="Choose a new password for your account."
-    >
+  if (!token) {
+    return (
+      <MessageScreen
+        title="Link expired"
+        body="Reset links work once and only for an hour. Request a new one from the sign-in page."
+        actions={
+          <Link to="/login" className="dnd-button-primary">
+            Back to sign in
+          </Link>
+        }
+      />
+    )
+  }
+
+  return (
+    <CenterScene>
       <title>New password · Karsus</title>
-      <form onSubmit={submit} className="space-y-5">
-        <Field label="New password" hint="At least 8 characters." error={error ?? undefined}>
-          {(p) => (
-            <Input {...p} type="password" required minLength={8} autoFocus autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <div className="dnd-card p-8">
+        <h1 className="mb-6 font-body text-sm tracking-widest text-dnd-jade uppercase">Choose a new password</h1>
+        <form onSubmit={submit} className="space-y-5">
+          <div>
+            <label htmlFor="new-password" className="dnd-label">
+              New Password
+            </label>
+            <input
+              id="new-password"
+              type="password"
+              required
+              minLength={8}
+              autoFocus
+              autoComplete="new-password"
+              placeholder="••••••••"
+              className="dnd-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <p className="mt-1 font-ui text-xs text-dnd-muted italic">At least 8 characters.</p>
+          </div>
+          {error && (
+            <p role="alert" className="rounded-lg border border-dnd-crimson/60 bg-dnd-crimson/15 px-3 py-2 font-ui text-sm text-red-300">
+              {error}
+            </p>
           )}
-        </Field>
-        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={pending}>
-          {pending ? 'Saving…' : 'Save password'}
-        </Button>
-      </form>
-    </TitleScreen>
-  ) : (
-    <TitleScreen
-      title={
-        <>
-          Link
-          <br />
-          expired
-        </>
-      }
-      lede="Reset links work once and only for an hour. Request a new one from the sign-in page."
-      actions={
-        <ButtonLink to="/login" variant="primary" size="lg">
-          Back to sign in
-        </ButtonLink>
-      }
-    >
-      <title>New password · Karsus</title>
-    </TitleScreen>
+          <button type="submit" className="dnd-button-primary w-full" disabled={pending}>
+            {pending ? 'Saving…' : 'Save Password'}
+          </button>
+        </form>
+      </div>
+    </CenterScene>
   )
 }

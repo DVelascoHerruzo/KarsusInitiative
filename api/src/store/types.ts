@@ -1,4 +1,4 @@
-import type { Encounter, Preset } from '@/lib/types'
+import type { Encounter, Mode, Preset, Role } from '@/lib/types'
 
 // ─── Tables: encounters and presets ──────────────────────────────────────────
 // One document per encounter or preset, with its creatures embedded, partitioned
@@ -29,6 +29,8 @@ export interface UserEntry {
   session_version: number
   failed_logins: number
   locked_until: number | null
+  /** The side of the table they were on last; missing on older accounts. */
+  mode?: Mode
   created_at: string
 }
 
@@ -46,6 +48,24 @@ export interface ShareEntry {
   encounter_id: string
 }
 
+/** Where a table lives: tables are partitioned by owner, and members only know the id. */
+export interface TableEntry {
+  id: string
+  kind: 'table'
+  owner_id: string
+  table_kind: Kind
+}
+
+/** An invite link: whoever opens it joins the table with this role. */
+export interface InviteEntry {
+  id: string
+  kind: 'invite'
+  owner_id: string
+  table_id: string
+  table_kind: Kind
+  role: Role
+}
+
 export interface ResetEntry {
   id: string
   kind: 'reset'
@@ -55,7 +75,7 @@ export interface ResetEntry {
   ttl: number
 }
 
-export type Entry = UserEntry | AliasEntry | ShareEntry | ResetEntry
+export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry
 export type EntryOf<K extends Entry['kind']> = Extract<Entry, { kind: K }>
 
 /** Item ids can't contain / \ ? #, so free text is URI-encoded. */
@@ -64,6 +84,8 @@ export const entryId = {
   email: (email: string) => `email:${encodeURIComponent(email)}`,
   google: (sub: string) => `google:${encodeURIComponent(sub)}`,
   share: (token: string) => `share:${token}`,
+  table: (tableId: string) => `table:${tableId}`,
+  invite: (token: string) => `invite:${token}`,
   reset: (tokenHash: string) => `reset:${tokenHash}`,
 }
 
@@ -74,6 +96,10 @@ export interface Store {
   /** Writes only if the document is unchanged since `etag` was read; false means re-read and retry. */
   replaceTable(doc: TableDoc, etag: string): Promise<boolean>
   deleteTable(ownerId: string, id: string): Promise<void>
+  /** Tables of this kind, across every owner, that list the user as a member. */
+  listJoinedTables<K extends Kind>(userId: string, kind: K): Promise<DocOf<K>[]>
+  /** The encounters launched from any of these campaigns; a campaign's encounters share its owner. */
+  listCampaignEncounters(ownerId: string, campaignIds: readonly string[]): Promise<EncounterDoc[]>
 
   getEntry<K extends Entry['kind']>(id: string, kind: K): Promise<EntryOf<K> | null>
   /** False when an entry with that id already exists. */

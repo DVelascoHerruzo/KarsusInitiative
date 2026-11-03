@@ -1,24 +1,28 @@
-import { useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { BookMarked, Play, Plus, Swords, Trash2 } from 'lucide-react'
-import { AppShell } from '@/components/layout/AppShell'
-import { Button, IconButton } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/Dialog'
-import { Avatar, EmptyState, MonogramPlate, SLANT } from '@/components/ui/display'
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { BookOpen, Pencil, Play, Plus, Swords, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { CardGrid, CardSkeletons, EmptyCard, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
+import ConfirmDelete from '@/components/ui/ConfirmDelete'
+import Layout from '@/components/ui/Layout'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
-import { useCreateEncounter, useDeleteEncounter, useEncounterList } from '@/features/encounters/queries'
-import { useCreatePreset, useDeletePreset, useLaunchPreset, usePresetList } from '@/features/presets/queries'
-import { timeAgo } from '@/lib/format'
+import { keys, useCreateEncounter, useDeleteEncounter, useEncounterList } from '@/features/encounters/queries'
+import { presetKeys, useCreatePreset, useDeletePreset, useLaunchPreset, usePresetList } from '@/features/presets/queries'
+import { api } from '@/lib/api'
 import { uploadImage } from '@/lib/images'
-import { cn } from '@/lib/cn'
+import type { EncounterSummary, NewEncounter, PresetSummary } from '@/lib/types'
 
-type Tab = 'encounters' | 'presets'
+type Editing = { kind: 'encounter'; item?: EncounterSummary } | { kind: 'preset'; item?: PresetSummary }
 type Pending = { kind: 'encounter' | 'preset'; id: string; name: string }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
 export default function DashboardPage() {
-  const { displayName } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const encounters = useEncounterList()
   const presets = usePresetList()
   const createEncounter = useCreateEncounter()
@@ -27,244 +31,191 @@ export default function DashboardPage() {
   const deletePreset = useDeletePreset()
   const launch = useLaunchPreset()
 
-  const [tab, setTab] = useState<Tab>('encounters')
-  const [creating, setCreating] = useState<'encounter' | 'preset' | null>(null)
+  const [editing, setEditing] = useState<Editing | null>(null)
   const [deleting, setDeleting] = useState<Pending | null>(null)
 
+  const rename = useMutation({
+    mutationFn: ({ kind, id, values }: { kind: 'encounter' | 'preset'; id: string; values: NewEncounter }) =>
+      kind === 'encounter' ? api.patch(`encounters/${id}`, values) : api.patch(`presets/${id}`, { name: values.title, description: values.description, background_url: values.background_url }),
+    onSuccess: (_, { kind }) => {
+      void qc.invalidateQueries({ queryKey: kind === 'encounter' ? keys.encounters : presetKeys.presets })
+      toast.success(kind === 'encounter' ? 'Encounter updated' : 'Preset updated')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  // Things shared with you say so; only what you own can be deleted.
+  const tags = (ownerId: string, hidden: boolean, members: number) =>
+    [ownerId !== user?.id && 'Co-DM', hidden && 'Hidden', ownerId === user?.id && members > 0 && plural(members, 'member')].filter((t): t is string => Boolean(t))
+
+  const toolBtn = 'rounded bg-dnd-black/70 p-1.5 text-dnd-muted backdrop-blur transition-colors'
+  const tools = (onEdit: () => void, pending: Pending, ownerId: string) => (
+    <>
+      <button type="button" onClick={onEdit} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Edit ${pending.name}`} title="Edit">
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      {ownerId === user?.id && (
+        <button type="button" onClick={() => setDeleting(pending)} className={`${toolBtn} hover:text-dnd-red`} aria-label={`Delete ${pending.name}`} title="Delete">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </>
+  )
+
+  async function submit(values: NewEncounter) {
+    if (!editing) return
+    if (editing.item) return rename.mutateAsync({ kind: editing.kind, id: editing.item.id, values })
+    if (editing.kind === 'encounter') navigate(`/encounters/${(await createEncounter.mutateAsync(values)).id}`)
+    else navigate(`/presets/${(await createPreset.mutateAsync({ name: values.title, description: values.description, background_url: values.background_url })).id}`)
+  }
+
+  const editingInitial =
+    editing?.kind === 'encounter' && editing.item
+      ? editing.item
+      : editing?.kind === 'preset' && editing.item
+        ? { title: editing.item.name, description: editing.item.description, background_url: editing.item.background_url }
+        : undefined
+
   return (
-    <AppShell>
-      <title>Your table · Karsus</title>
-      <div className="mb-12 flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="cmd text-ink-muted">Welcome back,</p>
-          <h1 className="display mt-2 truncate pr-2 text-4xl leading-[1.25] text-vellum sm:text-6xl">{displayName}</h1>
-        </div>
-        <Button onClick={() => setCreating('preset')}>
-          <BookMarked /> New preset
-        </Button>
-        <Button variant="primary" onClick={() => setCreating('encounter')}>
-          <Plus /> New encounter
-        </Button>
-      </div>
+    <Layout>
+      <title>Battle Command · Karsus</title>
+      <div className="space-y-10">
+        <Hero eyebrow="Battle Command" title="KARSUS INITIATIVE" tagline="Lead every charge. Track every turn." />
 
-      <div role="tablist" aria-label="Your table" className="flex items-end gap-8 border-b border-line">
-        <TabButton id="encounters" current={tab} onSelect={setTab} count={encounters.data?.length}>
-          Encounters
-        </TabButton>
-        <TabButton id="presets" current={tab} onSelect={setTab} count={presets.data?.length}>
-          Presets
-        </TabButton>
-      </div>
-
-      {tab === 'encounters' ? (
-        <TabPanel id="encounters" loading={encounters.isPending} error={encounters.error}>
-          {encounters.data?.length === 0 ? (
-            <EmptyState
-              className="mt-6"
-              icon={<Swords />}
-              title="No encounters yet"
-              body="An encounter is one fight: its combatants, turn order and scene."
+        {/* ── Encounters ─────────────────────────────────────────── */}
+        <section aria-label="Encounters">
+          <SectionHeading
+            icon={<Swords className="h-5 w-5 text-dnd-crimson" />}
+            title="Encounters"
+            count={encounters.data?.length}
+            action={
+              <button type="button" onClick={() => setEditing({ kind: 'encounter' })} className="dnd-button-primary px-4 py-2">
+                <Plus className="h-4 w-4" /> New Encounter
+              </button>
+            }
+          />
+          {encounters.isPending ? (
+            <CardSkeletons />
+          ) : encounters.error ? (
+            <EmptyCard icon={<Swords className="h-10 w-10" />} text={`Couldn’t load encounters: ${encounters.error.message}`} />
+          ) : encounters.data.length === 0 ? (
+            <EmptyCard
+              icon={<Swords className="h-10 w-10" />}
+              text="No encounters yet. Create your first battle!"
               action={
-                <Button variant="primary" onClick={() => setCreating('encounter')}>
-                  <Plus /> Create your first
-                </Button>
+                <button type="button" onClick={() => setEditing({ kind: 'encounter' })} className="dnd-button-secondary">
+                  <Plus className="h-4 w-4" /> Create Encounter
+                </button>
               }
             />
           ) : (
-            <ul>
-              {encounters.data?.map((e) => (
-                <LineupRow
+            <CardGrid>
+              {encounters.data.map((e) => (
+                <SceneCard
                   key={e.id}
                   to={`/encounters/${e.id}`}
                   title={e.title}
                   description={e.description}
                   background={e.background_url}
-                  creatures={e.creatures}
-                  status={e.active_creature_id ? `Round ${e.round}, in progress` : 'Not started'}
+                  strip={`${e.active_creature_id ? `ROUND ${e.round} · IN PROGRESS` : 'NOT STARTED'} · ${plural(e.creatures.length, 'CREATURE').toUpperCase()}`}
                   live={e.active_creature_id !== null}
-                  updated={e.updated_at}
-                  onDelete={() => setDeleting({ kind: 'encounter', id: e.id, name: e.title })}
+                  creatures={e.creatures}
+                  tags={tags(e.owner_id, e.hidden, e.members)}
+                  tools={tools(() => setEditing({ kind: 'encounter', item: e }), { kind: 'encounter', id: e.id, name: e.title }, e.owner_id)}
                 />
               ))}
-            </ul>
+            </CardGrid>
           )}
-        </TabPanel>
-      ) : (
-        <TabPanel id="presets" loading={presets.isPending} error={presets.error}>
-          <p className="max-w-2xl py-4 text-sm text-ink-muted">
-            Reusable line-ups: your party, a recurring villain, a random-encounter table. Launching one rolls fresh initiative for the monsters.
+        </section>
+
+        {/* ── Presets ─────────────────────────────────────────────── */}
+        <section aria-label="Presets">
+          <SectionHeading
+            icon={<BookOpen className="h-5 w-5 text-dnd-gold" />}
+            title="Presets"
+            count={presets.data?.length}
+            action={
+              <button type="button" onClick={() => setEditing({ kind: 'preset' })} className="dnd-button-secondary px-4 py-2">
+                <Plus className="h-4 w-4" /> New Preset
+              </button>
+            }
+          />
+          <p className="-mt-2 mb-4 max-w-3xl font-ui text-sm text-dnd-muted italic">
+            Your party, a recurring villain, a random-encounter table. Invite players to a preset and it becomes a campaign: they pick their characters, and
+            every encounter you launch from it shows up for them.
           </p>
-          {presets.data?.length === 0 ? (
-            <EmptyState
-              icon={<BookMarked />}
-              title="No presets yet"
-              body="Save your party once and drop them into every new fight."
-              action={<Button onClick={() => setCreating('preset')}>New preset</Button>}
+          {presets.isPending ? (
+            <CardSkeletons />
+          ) : presets.error ? (
+            <EmptyCard icon={<BookOpen className="h-10 w-10" />} text={`Couldn’t load presets: ${presets.error.message}`} />
+          ) : presets.data.length === 0 ? (
+            <EmptyCard
+              icon={<BookOpen className="h-10 w-10" />}
+              text="No presets yet. Save your party once and drop them into every fight!"
+              action={
+                <button type="button" onClick={() => setEditing({ kind: 'preset' })} className="dnd-button-secondary">
+                  <Plus className="h-4 w-4" /> Create Preset
+                </button>
+              }
             />
           ) : (
-            <ul className="border-t border-line">
-              {presets.data?.map((p) => (
-                <LineupRow
+            <CardGrid>
+              {presets.data.map((p) => (
+                <SceneCard
                   key={p.id}
                   to={`/presets/${p.id}`}
+                  glow="gold"
                   title={p.name}
                   description={p.description}
                   background={p.background_url}
+                  strip={plural(p.creatures.length, 'creature').toUpperCase()}
                   creatures={p.creatures}
-                  status={`${p.creatures.length} creature${p.creatures.length === 1 ? '' : 's'}`}
-                  updated={p.updated_at}
-                  onDelete={() => setDeleting({ kind: 'preset', id: p.id, name: p.name })}
+                  tags={tags(p.owner_id, p.hidden, p.members)}
+                  tools={tools(() => setEditing({ kind: 'preset', item: p }), { kind: 'preset', id: p.id, name: p.name }, p.owner_id)}
                   action={
-                    <Button
-                      size="sm"
-                      variant="accent"
+                    <button
+                      type="button"
                       disabled={launch.isPending || p.creatures.length === 0}
                       onClick={async () => navigate(`/encounters/${await launch.mutateAsync(p.id)}`)}
+                      className="flex items-center gap-1.5 rounded-lg border border-dnd-gold/40 px-3 py-1.5 font-body text-xs tracking-widest text-dnd-gold transition-colors hover:bg-dnd-gold/10 disabled:opacity-40"
                     >
-                      <Play /> Launch
-                    </Button>
+                      <Play className="h-3 w-3" /> Launch
+                    </button>
                   }
                 />
               ))}
-            </ul>
+            </CardGrid>
           )}
-        </TabPanel>
-      )}
+        </section>
+      </div>
 
       <EncounterFormDialog
-        open={creating === 'encounter'}
-        onClose={() => setCreating(null)}
-        heading="New encounter"
-        nameLabel="Encounter name"
-        submitLabel="Create encounter"
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        heading={`${editing?.item ? 'Edit' : 'New'} ${editing?.kind === 'preset' ? 'Preset' : 'Encounter'}`}
+        nameLabel={editing?.kind === 'preset' ? 'Preset Name' : 'Title'}
+        placeholder={editing?.kind === 'preset' ? 'Goblin Ambush' : 'The Final Showdown'}
+        submitLabel={editing?.item ? 'Save Changes' : editing?.kind === 'preset' ? 'Create Preset' : 'Create Encounter'}
+        initial={editingInitial}
         upload={uploadImage}
-        onSubmit={async (v) => navigate(`/encounters/${(await createEncounter.mutateAsync(v)).id}`)}
+        onSubmit={submit}
       />
-      <EncounterFormDialog
-        open={creating === 'preset'}
-        onClose={() => setCreating(null)}
-        heading="New preset"
-        nameLabel="Preset name"
-        submitLabel="Create preset"
-        upload={uploadImage}
-        onSubmit={async ({ title, ...rest }) => navigate(`/presets/${(await createPreset.mutateAsync({ name: title, ...rest })).id}`)}
-      />
-      <ConfirmDialog
+      <ConfirmDelete
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        title={`Delete ${deleting?.name ?? ''}?`}
-        body={`This permanently deletes the ${deleting?.kind} and all its creatures.`}
-        pending={deleteEncounter.isPending || deletePreset.isPending}
+        name={deleting?.name}
+        loading={deleteEncounter.isPending || deletePreset.isPending}
         onConfirm={async () => {
           if (!deleting) return
-          await (deleting.kind === 'encounter' ? deleteEncounter : deletePreset).mutateAsync(deleting.id)
+          try {
+            await (deleting.kind === 'encounter' ? deleteEncounter : deletePreset).mutateAsync(deleting.id)
+            toast.success(deleting.kind === 'encounter' ? 'Encounter deleted' : 'Preset deleted')
+          } catch {
+            // The mutation already reported the error.
+          }
           setDeleting(null)
         }}
       />
-    </AppShell>
-  )
-}
-
-function TabButton({ id, current, onSelect, count, children }: { id: Tab; current: Tab; onSelect: (t: Tab) => void; count?: number; children: ReactNode }) {
-  const on = id === current
-  return (
-    <button
-      type="button"
-      role="tab"
-      id={`tab-${id}`}
-      aria-selected={on}
-      aria-controls={`panel-${id}`}
-      onClick={() => onSelect(id)}
-      className={cn('relative flex items-end gap-2 pb-3 transition-colors', on ? 'text-vellum' : 'text-ink-faint hover:text-ink-muted')}
-    >
-      <span className="display text-3xl sm:text-4xl">{children}</span>
-      {count !== undefined && <span className="tabular cmd pb-1 text-sm">{count}</span>}
-      {on && <span aria-hidden className="absolute inset-x-0 -bottom-px h-1 bg-accent" />}
-    </button>
-  )
-}
-
-function TabPanel({ id, loading, error, children }: { id: Tab; loading: boolean; error: Error | null; children: ReactNode }) {
-  return (
-    <section id={`panel-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} aria-busy={loading}>
-      {error ? (
-        <p className="mt-6 border-l-2 border-signal bg-canvas px-4 py-3 text-sm text-signal">Couldn’t load {id}: {error.message}</p>
-      ) : loading ? (
-        <div>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 animate-pulse border-b border-line bg-panel/60" />
-          ))}
-        </div>
-      ) : (
-        children
-      )}
-    </section>
-  )
-}
-
-interface LineupRowProps {
-  to: string
-  title: string
-  description: string | null
-  background: string | null
-  creatures: { id: string; name: string; image_url: string | null }[]
-  status: string
-  live?: boolean
-  updated: string
-  onDelete: () => void
-  action?: ReactNode
-}
-
-const THUMB_W = 120
-const THUMB_H = 68
-
-/** A row in the lineup. The whole row is a link (stretched ::after); real buttons sit above it. Hover raises it and marks its edge in moonlight. */
-function LineupRow({ to, title, description, background, creatures, status, live, updated, onDelete, action }: LineupRowProps) {
-  const cut = Math.round(THUMB_H * SLANT)
-  return (
-    <li className="group relative flex items-center gap-4 border-b border-line py-3 pr-2 pl-3 transition-colors before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-accent before:opacity-0 focus-within:bg-raised focus-within:before:opacity-100 hover:bg-raised hover:before:opacity-100 sm:gap-6">
-      <span
-        className="relative hidden shrink-0 overflow-hidden sm:block"
-        style={{ width: THUMB_W, height: THUMB_H, clipPath: `polygon(0 0, calc(100% - ${cut}px) 0, 100% 100%, ${cut}px 100%)` }}
-      >
-        {background ? (
-          <img src={background} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
-        ) : (
-          <MonogramPlate name={title} monogramStyle={{ fontSize: THUMB_H * 1.05 }} />
-        )}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <h3 className="display truncate text-2xl leading-[1.3] text-vellum">
-          <Link to={to} className="after:absolute after:inset-0 focus-visible:outline-none">
-            {title}
-          </Link>
-        </h3>
-        <p className="mt-1 truncate text-sm text-ink-muted">
-          {description || 'No scene description yet.'}
-        </p>
-      </div>
-
-      <span className="hidden shrink-0 items-center -space-x-1 lg:flex" aria-hidden>
-        {creatures.slice(0, 6).map((c) => (
-          <Avatar key={c.id} name={c.name} src={c.image_url} size={28} />
-        ))}
-        {creatures.length > 6 && <span className="cmd pl-2 text-xs text-ink-faint">+{creatures.length - 6}</span>}
-      </span>
-
-      <div className="hidden w-44 shrink-0 text-right md:block">
-        <p className={cn('cmd text-sm', live ? 'text-accent' : 'text-ink-muted')}>{status}</p>
-        <time dateTime={updated} className="hint">
-          edited {timeAgo(updated)}
-        </time>
-      </div>
-
-      <div className="relative z-10 flex shrink-0 items-center gap-1">
-        {action}
-        <IconButton label={`Delete ${title}`} size="icon-sm" onClick={onDelete} className="hover:text-signal">
-          <Trash2 />
-        </IconButton>
-      </div>
-    </li>
+    </Layout>
   )
 }

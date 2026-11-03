@@ -48,7 +48,8 @@ function match(path: string) {
   throw new Error(`No route for ${path}`)
 }
 
-export function testApp(overrides: { store?: Store; env?: Record<string, string> } = {}): TestApp {
+/** `web` maps outgoing URLs to the JSON they answer with; anything else is a 404. */
+export function testApp(overrides: { store?: Store; env?: Record<string, string>; web?: Record<string, unknown> } = {}): TestApp {
   const pings: string[] = []
   const mail: TestApp['mail'] = []
   const live: Live = {
@@ -75,6 +76,10 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
     live,
     images,
     mail: mailer,
+    fetch: async (input) => {
+      const body = overrides.web?.[String(input)]
+      return body === undefined ? new Response('{"success":false}', { status: 404 }) : Response.json(body)
+    },
     now: () => new Date(),
     log: { warn() {}, error() {} },
   }
@@ -125,11 +130,11 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
 }
 
 /** A signed-up client, ready to use. */
-export async function signedUp(app: TestApp, email = 'dm@example.com') {
+export async function signedUp(app: TestApp, email = 'dm@example.com', username = 'Dungeon Master') {
   const api = app.client()
-  const res = await api('POST', '/api/auth/signup', { body: { email, username: 'Dungeon Master', password: 'correct horse battery' } })
+  const res = await api('POST', '/api/auth/signup', { body: { email, username, password: 'correct horse battery' } })
   if (res.status !== 201) throw new Error(`signup failed: ${JSON.stringify(res.body)}`)
-  return { api, user: res.body.user as { id: string; email: string; username: string } }
+  return { api, user: res.body.user as { id: string; email: string; username: string; mode: string } }
 }
 
 /** A minimal valid WebP header. */

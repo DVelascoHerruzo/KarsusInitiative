@@ -7,10 +7,11 @@ import { entryId, type UserEntry } from '../store/types'
 
 // The session is an HS256-signed token in an HttpOnly, SameSite=Lax cookie that
 // script can't read. It names the user and their session_version, which is checked
-// on every request, so a password reset signs out every other device.
+// on every request, so a password reset signs out every other device. Each visit
+// renews it (see auth/me), so only a year away from the site signs you out.
 
 export const SESSION_COOKIE = 'karsus_session'
-const SESSION_DAYS = 30
+const SESSION_DAYS = 365
 
 export function signingKey(s: Services): Uint8Array {
   const secret = s.config.sessionSecret
@@ -59,4 +60,4 @@ export async function requireUser(s: Services, req: ApiRequest): Promise<UserEnt
   return user
 }
 
-export const publicUser = (u: UserEntry): User => ({ id: u.user_id, email: u.email, username: u.username })
+export const publicUser = (u: UserEntry): User => ({ id: u.user_id, email: u.email, username: u.username, mode: u.mode ?? 'dm' })

@@ -1,4 +1,4 @@
-import type { DocOf, Entry, EntryOf, Kind, Store, TableDoc } from './types'
+import type { DocOf, EncounterDoc, Entry, EntryOf, Kind, Store, TableDoc } from './types'
 
 /**
  * Everything in process memory, with the same ETag semantics as Cosmos. Used by
@@ -36,6 +36,18 @@ export function memoryStore(): Store {
     },
     async deleteTable(ownerId, id) {
       tables.delete(key(ownerId, id))
+    },
+    async listJoinedTables<K extends Kind>(userId: string, kind: K) {
+      return [...tables.values()]
+        .map((t) => t.doc)
+        .filter((d): d is DocOf<K> => d.kind === kind && (d.members ?? []).some((m) => m.user_id === userId))
+        .map((d) => structuredClone(d))
+    },
+    async listCampaignEncounters(ownerId, campaignIds) {
+      return [...tables.values()]
+        .map((t) => t.doc)
+        .filter((d): d is EncounterDoc => d.owner_id === ownerId && d.kind === 'encounter' && campaignIds.includes(d.campaign_id ?? ''))
+        .map((d) => structuredClone(d))
     },
 
     async getEntry<K extends Entry['kind']>(id: string, kind: K) {

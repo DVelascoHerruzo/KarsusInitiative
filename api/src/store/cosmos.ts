@@ -1,5 +1,5 @@
 import { CosmosClient, type Container } from '@azure/cosmos'
-import type { DocOf, Entry, EntryOf, Kind, Store, TableDoc } from './types'
+import type { DocOf, EncounterDoc, Entry, EntryOf, Kind, Store, TableDoc } from './types'
 
 /**
  * Cosmos DB (NoSQL API). Database layout, created by infra/main.bicep:
@@ -46,6 +46,35 @@ export function cosmosStore(connectionString: string, database: string): Store {
     },
     async deleteTable(ownerId, id) {
       await ignore404(tables.item(id, ownerId).delete())
+    },
+    async listJoinedTables<K extends Kind>(userId: string, kind: K) {
+      // Crosses partitions, but only reads documents that name the user, so it stays cheap.
+      const { resources } = await tables.items
+        .query<DocOf<K>>({
+          query: 'SELECT * FROM c WHERE c.kind = @kind AND ARRAY_CONTAINS(c.members, { "user_id": @user }, true)',
+          parameters: [
+            { name: '@kind', value: kind },
+            { name: '@user', value: userId },
+          ],
+        })
+        .fetchAll()
+      return resources.map(clean)
+    },
+    async listCampaignEncounters(ownerId, campaignIds) {
+      if (campaignIds.length === 0) return []
+      const { resources } = await tables.items
+        .query<EncounterDoc>(
+          {
+            query: "SELECT * FROM c WHERE c.owner_id = @owner AND c.kind = 'encounter' AND ARRAY_CONTAINS(@campaigns, c.campaign_id)",
+            parameters: [
+              { name: '@owner', value: ownerId },
+              { name: '@campaigns', value: [...campaignIds] },
+            ],
+          },
+          { partitionKey: ownerId },
+        )
+        .fetchAll()
+      return resources.map(clean)
     },
 
     async getEntry<K extends Entry['kind']>(id: string, kind: K) {

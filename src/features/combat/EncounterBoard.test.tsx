@@ -26,6 +26,7 @@ function setup() {
 
 // The acting creature's name carries a visually hidden "Now acting:" prefix for screen readers.
 const nowActing = () => screen.getByText(/^Now acting:/).parentElement?.textContent?.replace(/^Now acting:\s*/, '')
+const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li')!
 
 describe('EncounterBoard', () => {
   it('starts combat and steps turns from the keyboard, skipping the dead', async () => {
@@ -52,19 +53,39 @@ describe('EncounterBoard', () => {
     await user.type(within(dialog).getByLabelText('Amount'), '9{Enter}')
 
     // 5 temp HP soak first, then 18 → 14
-    const row = screen.getByLabelText(/Brother Aldric: 14 of 31 hit points/)
-    expect(row).toBeInTheDocument()
+    expect(screen.getByLabelText(/Brother Aldric: 14 of 31 hit points/)).toBeInTheDocument()
     expect(await screen.findByText('Brother Aldric: concentration check')).toBeInTheDocument()
   })
 
-  it('toggles a condition for the selected creature', async () => {
+  it('adds a condition from the row and removes it again', async () => {
     const user = setup()
     await user.click(screen.getByRole('button', { name: 'Conditions for Worg' }))
+    await user.click(screen.getByRole('button', { name: 'Restrained' }))
+    expect(within(rowOf('Worg')).getByText('Restrained')).toBeInTheDocument()
+
+    await user.click(within(rowOf('Worg')).getByRole('button', { name: 'Remove Restrained' }))
+    expect(within(rowOf('Worg')).queryByText('Restrained')).not.toBeInTheDocument()
+  })
+
+  it('sets a timed condition in the full dialog', async () => {
+    const user = setup()
+    await user.click(screen.getByRole('button', { name: 'Conditions for Worg' }))
+    await user.click(screen.getByRole('button', { name: 'Timed or custom…' }))
     const dialog = await screen.findByRole('dialog')
-    await user.click(within(dialog).getByRole('button', { name: 'Restrained' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Poisoned' }))
+    const poisoned = within(dialog).getByRole('button', { name: 'Poisoned' }).parentElement!
+    await user.click(within(poisoned).getByRole('button', { name: 'More rounds' }))
     await user.click(within(dialog).getByRole('button', { name: 'Done' }))
 
-    const worg = screen.getByText('Worg').closest('li')!
-    expect(within(worg).getByText('Restrained')).toBeInTheDocument()
+    expect(within(rowOf('Worg')).getByText('1r')).toBeInTheDocument()
+  })
+
+  it('edits initiative in place and re-sorts the order', async () => {
+    const user = setup()
+    const input = screen.getByLabelText('Initiative for Thorne')
+    await user.clear(input)
+    await user.type(input, '30{Enter}')
+    const rows = within(screen.getByRole('list', { name: 'Initiative order' })).getAllByRole('listitem')
+    expect(within(rows[0]!).getByRole('button', { name: 'Thorne' })).toBeInTheDocument()
   })
 })
