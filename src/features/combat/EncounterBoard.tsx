@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Dices, Keyboard, Plus, RotateCcw, Swords } from 'lucide-react'
 import { toast } from 'sonner'
 import ConfirmDelete from '@/components/ui/ConfirmDelete'
-import { nextUp, sortByInitiative, type HpResult } from '@/lib/combat'
+import { copyName, duplicateCreature, nextUp, sortByInitiative, type HpResult } from '@/lib/combat'
 import { d20Notation, rollDice } from '@/lib/dice'
 import type { ImageKind } from '@/lib/images'
 import type { Condition, Creature, CreaturePatch, Encounter, EncounterPatch, NewCreature } from '@/lib/types'
@@ -76,6 +76,13 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
     toast.success(`Rolled initiative for ${monsters.length} monster${monsters.length === 1 ? '' : 's'}`)
   }
 
+  async function duplicate(c: Creature) {
+    const { rename, copy } = copyName(c.name, encounter.creatures.map((x) => x.name))
+    if (rename) actions.updateCreature(c.id, { name: rename })
+    await actions.addCreatures([duplicateCreature(c, copy, (bonus) => rollDice(d20Notation(bonus)).total)])
+    toast.success(`${copy} joins the fight`)
+  }
+
   function moveSelection(dir: 1 | -1) {
     if (ordered.length === 0) return
     const idx = selected ? ordered.findIndex((c) => c.id === selected.id) : -1
@@ -132,6 +139,9 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
               <p className="font-ui text-xs text-dnd-muted italic">
                 {started ? 'Then' : 'First up:'} {next.name}
               </p>
+            )}
+            {!started && ordered.some((c) => !c.is_player) && (
+              <p className="font-ui text-xs text-dnd-jade/80 italic">Players see only the party until you start.</p>
             )}
           </div>
         </div>
@@ -198,6 +208,7 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
                   onSelect={() => setSelectedId(c.id)}
                   onSave={(patch) => actions.updateCreature(c.id, patch)}
                   onDelete={() => setRemoveTarget(c)}
+                  onDuplicate={() => void duplicate(c).catch(() => {})}
                   onHp={() => setHpTarget({ id: c.id, mode: 'damage' })}
                   onConditions={() => setConditionsId(c.id)}
                   onEdit={() => setFormTarget({ mode: 'edit', creature: c })}

@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto'
-import { advanceTurn, healthBand, sortByInitiative } from '@/lib/combat'
+import { advanceTurn, healthBand, sortByInitiative, visibleToPlayers } from '@/lib/combat'
 import type {
   Creature,
   CreaturePatch,
@@ -307,7 +307,7 @@ export const ownCharacter = (c: Creature): Creature => ({ ...c, notes: null })
 
 /** The player view: no DM notes or hidden creatures, and monsters show a health band instead of exact HP or AC. */
 export function redact(doc: EncounterDoc): SharedEncounter {
-  const visible = doc.creatures.filter((c) => !c.hidden)
+  const visible = visibleToPlayers(doc.creatures, doc.active_creature_id !== null)
   const active = visible.some((c) => c.id === doc.active_creature_id) ? doc.active_creature_id : null
   return {
     title: doc.title,

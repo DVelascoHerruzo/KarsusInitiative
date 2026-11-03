@@ -1,17 +1,18 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { ArrowLeft, Shield } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import { Emblem } from './Emblem'
 
 /**
  * The sign-in page's look: the city backdrop under a dark wash, soft glows, the
- * shield crest and one card. Used for sign-in, password reset, and messages like
+ * emblem and one card. Used for sign-in, password reset, and messages like
  * "this table is closed".
  */
 export function CenterScene({ children, back = true, subtitle = 'INITIATIVE TRACKER' }: { children: ReactNode; back?: boolean; subtitle?: string }) {
   return (
     <div className="bg-adventure relative flex min-h-screen items-center justify-center p-4">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute top-0 left-1/2 h-64 w-[600px] -translate-x-1/2 rounded-full bg-dnd-amber/5 blur-3xl" />
+        <div className="absolute top-0 left-1/2 h-64 w-150 -translate-x-1/2 rounded-full bg-dnd-amber/5 blur-3xl" />
         <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-dnd-teal/8 blur-3xl" />
         <div className="absolute right-1/4 bottom-0 h-64 w-64 rounded-full bg-dnd-crimson/6 blur-3xl" />
       </div>
@@ -27,7 +28,7 @@ export function CenterScene({ children, back = true, subtitle = 'INITIATIVE TRAC
 
         <div className="mb-10 text-center">
           <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full border-2 border-dnd-jade bg-dnd-teal/20 shadow-glow-jade">
-            <Shield className="h-10 w-10 text-dnd-jade" />
+            <Emblem className="h-12 w-12 text-dnd-jade" />
           </div>
           <p className="font-display text-3xl tracking-widest text-dnd-jade">KARSUS</p>
           <p className="mt-1 font-body text-sm tracking-[0.3em] text-dnd-muted">{subtitle}</p>

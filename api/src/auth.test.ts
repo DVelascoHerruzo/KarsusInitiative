@@ -111,6 +111,11 @@ describe('same-origin check behind Static Web Apps', () => {
     expect(() => assertSameOrigin(req(site, { 'x-ms-original-url': `${site}/api/auth/signup` }), null, false)).not.toThrow()
   })
 
+  it('accepts the browser extension, which only has the session cookie if the user allowed it on this site', () => {
+    expect(() => assertSameOrigin(req('chrome-extension://abcdefghijklmnopabcdefghijklmnop', {}), 'https://karsusinitiative.com', false)).not.toThrow()
+    expect(() => assertSameOrigin(req('chrome-extension://not-an-extension-id', {}), 'https://karsusinitiative.com', false)).toThrow()
+  })
+
   it('still refuses other sites', () => {
     expect(() => assertSameOrigin(req('https://evil.example', { host: 'orange-desert.azurestaticapps.net' }), 'https://karsusinitiative.com', false)).toThrow(
       'Cross-site requests aren’t allowed',

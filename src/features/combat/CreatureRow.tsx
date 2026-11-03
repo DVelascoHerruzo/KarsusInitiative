@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { Eye, EyeOff, Heart, ImagePlus, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, Eye, EyeOff, Heart, ImagePlus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HpBar, StatusPill, Token } from '@/components/ui/tokens'
 import { CONDITIONS, hasCondition, withCondition, withoutCondition } from '@/lib/conditions'
@@ -17,6 +17,8 @@ interface CreatureRowProps {
   onSelect?: () => void
   onSave: (patch: CreaturePatch) => void
   onDelete: () => void
+  /** Adds a copy with the next number: Goblin 1 → Goblin 2. */
+  onDuplicate: () => void
   onHp: () => void
   /** Opens the full conditions dialog, for timed conditions and custom effects. */
   onConditions: () => void
@@ -38,6 +40,7 @@ export default function CreatureRow({
   onSelect,
   onSave,
   onDelete,
+  onDuplicate,
   onHp,
   onConditions,
   onEdit,
@@ -276,6 +279,9 @@ export default function CreatureRow({
         <input type="checkbox" checked={c.is_player} onChange={(e) => onSave({ is_player: e.target.checked })} className="h-3 w-3 accent-(--color-heading)" />
         PC
       </label>
+      <button type="button" onClick={onDuplicate} className={iconBtn} title="Duplicate" aria-label={`Duplicate ${c.name}`}>
+        <Copy className="h-3.5 w-3.5" />
+      </button>
       <button type="button" onClick={onEdit} className={iconBtn} title="Edit everything" aria-label={`Edit ${c.name}`}>
         <Pencil className="h-3.5 w-3.5" />
       </button>

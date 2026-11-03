@@ -87,6 +87,10 @@ export function assertSameOrigin(req: ApiRequest, publicOrigin: string | null, d
   if (req.method === 'GET' || req.method === 'HEAD' || dev) return
   const origin = req.headers.get('origin')
   if (!origin) return
+  // The Karsus browser extension. Chrome only attaches the SameSite=Lax session cookie
+  // for an extension the user granted access to this site, and such an extension could
+  // already script our own pages; any other extension's request arrives signed out.
+  if (/^chrome-extension:\/\/[a-p]{32}$/.test(origin)) return
   const allowed = new Set([new URL(req.url).origin])
   if (publicOrigin) allowed.add(publicOrigin)
   for (const host of [req.headers.get('x-forwarded-host'), req.headers.get('host')]) {
