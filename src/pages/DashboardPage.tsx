@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Pencil, Play, Plus, Swords, Trash2 } from 'lucide-react'
+import { BookOpen, FolderInput, Pencil, Play, Plus, Swords, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { CardGrid, CardSkeletons, EmptyCard, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
+import { CardGrid, CardSkeletons, EmptyCard, EncounterGroups, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
 import ConfirmDelete from '@/components/ui/ConfirmDelete'
 import Layout from '@/components/ui/Layout'
+import Modal from '@/components/ui/Modal'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
+import { FolderSelect } from '@/features/encounters/FolderSelect'
 import { keys, useCreateEncounter, useDeleteEncounter, useEncounterList } from '@/features/encounters/queries'
 import { presetKeys, useCreatePreset, useDeletePreset, useLaunchPreset, usePresetList } from '@/features/presets/queries'
 import { api } from '@/lib/api'
+import { groupEncounters } from '@/lib/folders'
 import { uploadImage } from '@/lib/images'
 import type { EncounterSummary, NewEncounter, PresetSummary } from '@/lib/types'
 
@@ -33,6 +36,7 @@ export default function DashboardPage() {
 
   const [editing, setEditing] = useState<Editing | null>(null)
   const [deleting, setDeleting] = useState<Pending | null>(null)
+  const [filing, setFiling] = useState<EncounterSummary | null>(null)
 
   const rename = useMutation({
     mutationFn: ({ kind, id, values }: { kind: 'encounter' | 'preset'; id: string; values: NewEncounter }) =>
@@ -49,8 +53,13 @@ export default function DashboardPage() {
     [ownerId !== user?.id && 'Co-DM', hidden && 'Hidden', ownerId === user?.id && members > 0 && plural(members, 'member')].filter((t): t is string => Boolean(t))
 
   const toolBtn = 'rounded bg-dnd-black/70 p-1.5 text-dnd-muted backdrop-blur transition-colors'
-  const tools = (onEdit: () => void, pending: Pending, ownerId: string) => (
+  const tools = (onEdit: () => void, pending: Pending, ownerId: string, onFile?: () => void) => (
     <>
+      {onFile && (
+        <button type="button" onClick={onFile} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Move ${pending.name} to a folder`} title="Move to folder">
+          <FolderInput className="h-3.5 w-3.5" />
+        </button>
+      )}
       <button type="button" onClick={onEdit} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Edit ${pending.name}`} title="Edit">
         <Pencil className="h-3.5 w-3.5" />
       </button>
@@ -109,8 +118,9 @@ export default function DashboardPage() {
               }
             />
           ) : (
-            <CardGrid>
-              {encounters.data.map((e) => (
+            <EncounterGroups
+              groups={groupEncounters(encounters.data, (presets.data ?? []).map((p) => ({ id: p.id, name: p.name })))}
+              render={(e) => (
                 <SceneCard
                   key={e.id}
                   to={`/encounters/${e.id}`}
@@ -120,11 +130,11 @@ export default function DashboardPage() {
                   strip={`${e.active_creature_id ? `ROUND ${e.round} · IN PROGRESS` : 'NOT STARTED'} · ${plural(e.creatures.length, 'CREATURE').toUpperCase()}`}
                   live={e.active_creature_id !== null}
                   creatures={e.creatures}
-                  tags={tags(e.owner_id, e.hidden, e.members)}
-                  tools={tools(() => setEditing({ kind: 'encounter', item: e }), { kind: 'encounter', id: e.id, name: e.title }, e.owner_id)}
+                  tags={[...(e.live ? ['Live'] : []), ...tags(e.owner_id, e.hidden, e.members)]}
+                  tools={tools(() => setEditing({ kind: 'encounter', item: e }), { kind: 'encounter', id: e.id, name: e.title }, e.owner_id, () => setFiling(e))}
                 />
-              ))}
-            </CardGrid>
+              )}
+            />
           )}
         </section>
 
@@ -200,6 +210,13 @@ export default function DashboardPage() {
         upload={uploadImage}
         onSubmit={submit}
       />
+      <Modal open={filing !== null} onClose={() => setFiling(null)} title="Move to Folder" size="sm">
+        {filing && (
+          <div className="p-6">
+            <FolderSelect encounterId={filing.id} ownerId={filing.owner_id} value={encounters.data?.find((x) => x.id === filing.id)?.campaign_id ?? null} />
+          </div>
+        )}
+      </Modal>
       <ConfirmDelete
         open={deleting !== null}
         onClose={() => setDeleting(null)}

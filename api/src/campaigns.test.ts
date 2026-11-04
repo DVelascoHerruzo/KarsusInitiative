@@ -202,14 +202,16 @@ describe('campaign encounters', () => {
     const ogre = (await c.dm.api('POST', `/api/encounters/${id}/creatures`, { body: { creatures: [{ name: 'Ogre', initiative: 99, hidden: true }] } })).body[0]
     expect(fight.creatures.find((x: { name: string }) => x.name === 'Secret Twin').hidden).toBe(true)
 
+    // The hidden Ogre opens the fight: for the players, combat hasn't started yet.
     await c.dm.api('POST', `/api/encounters/${id}/turn`, { body: { step: 1 } })
     const view = (await sam.api('GET', `/api/encounters/${id}/view`)).body
     expect(view.creatures.map((x: { name: string }) => x.name)).not.toContain('Ogre')
     expect(view.creatures.map((x: { name: string }) => x.name)).not.toContain('Secret Twin')
-    expect(view).toMatchObject({ active_creature_id: null, hidden_turn: true })
+    expect(view).toMatchObject({ active_creature_id: null, round: 1 })
+    expect(view).not.toHaveProperty('hidden_turn')
 
     await c.dm.api('PATCH', `/api/encounters/${id}/creatures/${ogre.id}`, { body: { hidden: false } })
-    expect((await sam.api('GET', `/api/encounters/${id}/view`)).body).toMatchObject({ active_creature_id: ogre.id, hidden_turn: false })
+    expect((await sam.api('GET', `/api/encounters/${id}/view`)).body).toMatchObject({ active_creature_id: ogre.id })
   })
 })
 
@@ -319,5 +321,68 @@ describe('D&D Beyond import', () => {
     expect(hidden).toMatchObject({ status: 404, body: { error: expect.stringContaining('Character Privacy') } })
     expect((await api('POST', '/api/import/dndbeyond', { body: { url: 'https://example.com' } })).status).toBe(400)
     expect((await app.call('POST', '/api/import/dndbeyond', { body: { url: 'x' } })).status).toBe(401)
+  })
+})
+
+describe('folders and live encounters', () => {
+  it('files a loose encounter into a campaign folder, so its players see it without their character in it', async () => {
+    const app = testApp()
+    const c = await campaign(app)
+    const sam = await join(app, await invite(c.dm.api, c.base, 'player'), 'sam@example.com', 'Sam', { claim: c.vex })
+    const loose = (await c.dm.api('POST', '/api/encounters', { body: { title: 'Bandits at the ford' } })).body.id as string
+    expect((await sam.api('GET', `/api/encounters/${loose}/view`)).status).toBe(404)
+
+    expect((await c.dm.api('PATCH', `/api/encounters/${loose}`, { body: { campaign_id: c.id } })).body.campaign_id).toBe(c.id)
+    const view = await sam.api('GET', `/api/encounters/${loose}/view`)
+    expect(view.status).toBe(200)
+    expect(view.body).toMatchObject({ mine: [], characters: [] })
+    const home = (await sam.api('GET', '/api/player')).body
+    expect(home.encounters).toEqual([expect.objectContaining({ id: loose, campaign_id: c.id, campaign_name: 'Curse of the Hollow Crown' })])
+
+    // Out of the folder again: closed to the campaign.
+    await c.dm.api('PATCH', `/api/encounters/${loose}`, { body: { campaign_id: null } })
+    expect((await sam.api('GET', `/api/encounters/${loose}/view`)).status).toBe(404)
+  })
+
+  it('won’t file into a folder the caller doesn’t run', async () => {
+    const app = testApp()
+    const c = await campaign(app)
+    const other = await signedUp(app, 'other@example.com', 'Other')
+    const theirs = (await other.api('POST', '/api/encounters', { body: { title: 'Mine' } })).body.id as string
+    expect((await other.api('PATCH', `/api/encounters/${theirs}`, { body: { campaign_id: c.id } })).status).toBe(404)
+  })
+
+  it('sends a player their own character in full, without the DM’s notes', async () => {
+    const app = testApp()
+    const c = await campaign(app)
+    const sam = await join(app, await invite(c.dm.api, c.base, 'player'), 'sam@example.com', 'Sam', { claim: c.vex })
+    const id = (await c.dm.api('POST', `${c.base}/launch`)).body.id as string
+    const view = (await sam.api('GET', `/api/encounters/${id}/view`)).body
+    expect(view.characters).toHaveLength(1)
+    expect(view.characters[0]).toMatchObject({ name: 'Vex', character_id: c.vex, notes: null, armor_class: 15 })
+    expect(view.mine).toEqual([view.characters[0].id])
+  })
+
+  it('is live while a DM has it open, and not while it’s hidden', async () => {
+    const app = testApp()
+    const c = await campaign(app)
+    const sam = await join(app, await invite(c.dm.api, c.base, 'player'), 'sam@example.com', 'Sam', { claim: c.vex })
+    const id = (await c.dm.api('POST', `${c.base}/launch`)).body.id as string
+    const live = async () => [
+      (await c.dm.api('GET', '/api/encounters')).body[0].live,
+      (await sam.api('GET', '/api/player')).body.encounters[0]?.live,
+    ]
+    expect(await live()).toEqual([false, false])
+
+    expect((await c.dm.api('POST', `/api/encounters/${id}/presence`)).status).toBe(204)
+    expect(await live()).toEqual([true, true])
+    expect((await sam.api('POST', `/api/encounters/${id}/presence`)).status).toBe(403)
+
+    await c.dm.api('PATCH', `/api/encounters/${id}`, { body: { hidden: true } })
+    expect((await c.dm.api('GET', '/api/encounters')).body[0].live).toBe(false)
+    await c.dm.api('PATCH', `/api/encounters/${id}`, { body: { hidden: false } })
+
+    await c.dm.api('DELETE', `/api/encounters/${id}/presence`)
+    expect(await live()).toEqual([false, false])
   })
 })

@@ -7,7 +7,8 @@ import Layout, { PageHeader } from '@/components/ui/Layout'
 import Modal from '@/components/ui/Modal'
 import { EncounterBoard, type BoardActions } from '@/features/combat/EncounterBoard'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
-import { NotFoundError, keys, useEncounter, useEncounterMutations, useEncounterPings } from '@/features/encounters/queries'
+import { FolderSelect } from '@/features/encounters/FolderSelect'
+import { NotFoundError, keys, useDmPresence, useEncounter, useEncounterMutations, useEncounterPings } from '@/features/encounters/queries'
 import { ShareDialog, openPlayerWindow } from '@/features/encounters/ShareDialog'
 import { MembersPanel } from '@/features/members/MembersPanel'
 import { usePreset } from '@/features/presets/queries'
@@ -30,6 +31,9 @@ export default function EncounterPage() {
   useEncounterPings(encounter?.share_token, () => {
     if (qc.isMutating({ mutationKey: keys.encounter(id) }) === 0) void qc.invalidateQueries({ queryKey: keys.encounter(id) })
   })
+
+  // Having the encounter open is what makes it live for everyone's lists.
+  useDmPresence(id, Boolean(encounter))
 
   const playerNames = useMemo(
     () => new Map([...(campaign.data?.members ?? []), ...(encounter?.members ?? [])].map((x) => [x.user_id, x.username])),
@@ -144,7 +148,7 @@ export default function EncounterPage() {
         title="Players"
         description={
           encounter.campaign_id
-            ? 'Everyone in the campaign this was launched from can already see it. Invite anyone else here.'
+            ? 'Everyone in the campaign of its folder can already see it. Invite anyone else here.'
             : 'Invite players to follow the fight with their own character, or a co-DM to run it with you.'
         }
         size="lg"
@@ -157,6 +161,7 @@ export default function EncounterPage() {
             </span>
             <input type="checkbox" checked={encounter.hidden} onChange={(e) => m.updateEncounter.mutate({ hidden: e.target.checked })} className="h-5 w-5 accent-[var(--theme-accent)]" />
           </label>
+          <FolderSelect encounterId={encounter.id} ownerId={encounter.owner_id} value={encounter.campaign_id} className="block" />
           <MembersPanel
             kind="encounter"
             base={`encounters/${id}`}

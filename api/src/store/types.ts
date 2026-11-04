@@ -75,7 +75,16 @@ export interface ResetEntry {
   ttl: number
 }
 
-export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry
+/** A DM has the encounter open. Refreshed by a heartbeat; Cosmos removes it soon after the DM leaves. */
+export interface PresenceEntry {
+  id: string
+  kind: 'presence'
+  /** When the heartbeat last arrived, in ms. */
+  at: number
+  ttl: number
+}
+
+export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry
 export type EntryOf<K extends Entry['kind']> = Extract<Entry, { kind: K }>
 
 /** Item ids can't contain / \ ? #, so free text is URI-encoded. */
@@ -87,6 +96,7 @@ export const entryId = {
   table: (tableId: string) => `table:${tableId}`,
   invite: (token: string) => `invite:${token}`,
   reset: (tokenHash: string) => `reset:${tokenHash}`,
+  presence: (encounterId: string) => `presence:${encounterId}`,
 }
 
 export interface Store {

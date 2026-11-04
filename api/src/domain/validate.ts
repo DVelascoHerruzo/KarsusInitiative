@@ -89,6 +89,7 @@ export function encounterPatch(body: Body): EncounterPatch {
     active_creature_id: (v) => (v === null ? null : text(v, 'Active creature', 64, 1)),
     share_enabled: (v) => bool(v, 'Sharing'),
     hidden: (v) => bool(v, 'Hidden'),
+    campaign_id: (v) => (v === null ? null : text(v, 'Folder', 64, 1)),
   })
 }
 
@@ -200,7 +201,8 @@ const creatureParsers: { [K in keyof CreaturePatch]-?: (v: unknown) => CreatureP
 
 /** What a player may change about their own character, in a campaign and in a fight. */
 export const PLAYER_SHEET_FIELDS = ['name', 'image_url', 'initiative_bonus', 'max_hp', 'armor_class', 'sheet'] as const
-export const PLAYER_COMBAT_FIELDS = ['current_hp', 'temp_hp', 'conditions'] as const
+/** In a fight a player changes their HP and conditions, and their sheet (spending spell slots) when it isn't a campaign character. */
+export const PLAYER_COMBAT_FIELDS = ['current_hp', 'temp_hp', 'conditions', 'sheet'] as const
 
 export function onlyFields(patch: CreaturePatch, allowed: readonly (keyof CreaturePatch)[]): CreaturePatch {
   const extra = Object.keys(patch).filter((k) => !allowed.includes(k as keyof CreaturePatch))

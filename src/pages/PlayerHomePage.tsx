@@ -2,10 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Link2, Scroll, Swords } from 'lucide-react'
 import { toast } from 'sonner'
-import { CardGrid, CardSkeletons, EmptyCard, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
+import { CardGrid, CardSkeletons, EmptyCard, EncounterGroups, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
 import Layout from '@/components/ui/Layout'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { usePlayerHome } from '@/features/player/queries'
+import { groupEncounters } from '@/lib/folders'
 
 /** The token from an invite link, or from the bare token pasted on its own. */
 function inviteToken(text: string): string | null {
@@ -88,8 +89,10 @@ export default function PlayerHomePage() {
               text="No fights yet. Encounters your DM runs for your campaigns appear here on their own, and so do the ones you’re invited to directly."
             />
           ) : (
-            <CardGrid>
-              {encounters?.map((e) => (
+            <EncounterGroups
+              groups={groupEncounters(encounters ?? [], (campaigns ?? []).map((c) => ({ id: c.id, name: c.name })))}
+              looseLabel="Invited directly"
+              render={(e, folder) => (
                 <SceneCard
                   key={e.id}
                   to={`/encounters/${e.id}/view`}
@@ -98,11 +101,11 @@ export default function PlayerHomePage() {
                   background={e.background_url}
                   strip={e.started ? `ROUND ${e.round} · IN PROGRESS` : 'NOT STARTED'}
                   live={e.started}
-                  tags={[e.campaign_name, e.character_name && `as ${e.character_name}`].filter((t): t is string => Boolean(t))}
+                  tags={[e.live && 'Live', !folder && e.campaign_name, e.character_name && `as ${e.character_name}`].filter((t): t is string => Boolean(t))}
                   creatures={[]}
                 />
-              ))}
-            </CardGrid>
+              )}
+            />
           )}
         </section>
       </div>

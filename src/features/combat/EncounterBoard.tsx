@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Dices, Keyboard, Plus, RotateCcw, Swords } from 'lucide-react'
 import { toast } from 'sonner'
 import ConfirmDelete from '@/components/ui/ConfirmDelete'
-import { copyName, duplicateCreature, nextUp, sortByInitiative, type HpResult } from '@/lib/combat'
+import { copyName, duplicateCreature, nextUp, restorable, sortByInitiative, type HpResult } from '@/lib/combat'
 import { d20Notation, rollDice } from '@/lib/dice'
 import type { ImageKind } from '@/lib/images'
 import type { Condition, Creature, CreaturePatch, Encounter, EncounterPatch, NewCreature } from '@/lib/types'
@@ -49,7 +49,6 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
   const [hpTarget, setHpTarget] = useState<{ id: string; mode: HpMode } | null>(null)
   const [conditionsId, setConditionsId] = useState<string | null>(null)
   const [formTarget, setFormTarget] = useState<CreatureFormTarget | null>(null)
-  const [removeTarget, setRemoveTarget] = useState<Creature | null>(null)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const diceInput = useRef<HTMLInputElement>(null)
@@ -81,6 +80,12 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
     if (rename) actions.updateCreature(c.id, { name: rename })
     await actions.addCreatures([duplicateCreature(c, copy, (bonus) => rollDice(d20Notation(bonus)).total)])
     toast.success(`${copy} joins the fight`)
+  }
+
+  /** No confirmation: removing is one click, and the toast offers to put it back. */
+  function remove(c: Creature) {
+    actions.removeCreature(c.id)
+    toast(`${c.name} removed`, { action: { label: 'Undo', onClick: () => void Promise.resolve(actions.addCreatures([restorable(c)])).catch(() => {}) } })
   }
 
   function moveSelection(dir: 1 | -1) {
@@ -207,7 +212,7 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
                   playedBy={c.player_id ? playerNames?.get(c.player_id) : undefined}
                   onSelect={() => setSelectedId(c.id)}
                   onSave={(patch) => actions.updateCreature(c.id, patch)}
-                  onDelete={() => setRemoveTarget(c)}
+                  onDelete={() => remove(c)}
                   onDuplicate={() => void duplicate(c).catch(() => {})}
                   onHp={() => setHpTarget({ id: c.id, mode: 'damage' })}
                   onConditions={() => setConditionsId(c.id)}
@@ -240,24 +245,6 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
         onAdd={actions.addCreatures}
         onEdit={actions.updateCreature}
         upload={actions.upload}
-      />
-      <ConfirmDelete
-        open={removeTarget !== null}
-        onClose={() => setRemoveTarget(null)}
-        name={removeTarget?.name}
-        title="Remove Creature"
-        confirmLabel="Remove"
-        body={
-          <>
-            Remove <span className="font-body text-dnd-gold">“{removeTarget?.name}”</span> from the fight?
-            <br />
-            <span className="text-sm text-dnd-muted">If it’s their turn, play passes to the next creature.</span>
-          </>
-        }
-        onConfirm={() => {
-          if (removeTarget) actions.removeCreature(removeTarget.id)
-          setRemoveTarget(null)
-        }}
       />
       <ConfirmDelete
         open={confirmReset}
