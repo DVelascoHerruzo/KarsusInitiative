@@ -221,3 +221,49 @@ export function duplicateCreature(c: Creature, name: string, rollInitiative?: (b
 export function visibleToPlayers<T extends Pick<Creature, 'hidden' | 'is_player'>>(creatures: readonly T[], started: boolean): T[] {
   return creatures.filter((c) => !c.hidden && (started || c.is_player))
 }
+
+/**
+ * The turn as the players see it. While a hidden creature acts, nothing changes
+ * on their screens: they keep seeing whoever acted before it, in that creature's
+ * round, and if a hidden creature opens the fight, combat simply hasn't started
+ * for them yet. Returns the creatures they may see, in turn order.
+ */
+export function playerTurn<T extends TurnCreature & Pick<Creature, 'hidden' | 'is_player'>>(
+  creatures: readonly T[],
+  activeId: string | null,
+  round: number,
+): { creatures: T[]; activeId: string | null; round: number } {
+  const ordered = sortByInitiative(creatures)
+  const idx = ordered.findIndex((c) => c.id === activeId)
+  let shown = { activeId: idx >= 0 ? activeId : null, round }
+  if (idx >= 0 && ordered[idx]!.hidden) {
+    shown = { activeId: null, round: 1 }
+    for (let back = 1; back < ordered.length; back++) {
+      const c = ordered[(idx - back + ordered.length) % ordered.length]!
+      if (c.hidden || hasCondition(c.conditions, 'dead')) continue
+      const r = idx - back < 0 ? round - 1 : round
+      if (r >= 1) shown = { activeId: c.id, round: r }
+      break
+    }
+  }
+  return { ...shown, creatures: visibleToPlayers(ordered, shown.activeId !== null) }
+}
+
+/** Everything needed to put a removed creature back exactly as it was (it gets a new id). */
+export function restorable(c: Creature): NewCreature {
+  return {
+    name: c.name,
+    is_player: c.is_player,
+    initiative: c.initiative,
+    initiative_bonus: c.initiative_bonus,
+    max_hp: c.max_hp,
+    current_hp: c.current_hp,
+    temp_hp: c.temp_hp,
+    armor_class: c.armor_class,
+    conditions: c.conditions,
+    notes: c.notes,
+    image_url: c.image_url,
+    hidden: c.hidden,
+    sheet: c.sheet,
+  }
+}

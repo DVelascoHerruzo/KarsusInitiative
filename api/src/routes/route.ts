@@ -149,7 +149,10 @@ export async function createTable(s: Services, doc: TableDoc): Promise<void> {
 }
 
 export async function deleteTable(s: Services, doc: TableDoc): Promise<void> {
-  if (doc.kind === 'encounter') await s.store.deleteEntry(entryId.share(doc.share_token))
+  if (doc.kind === 'encounter') {
+    await s.store.deleteEntry(entryId.share(doc.share_token))
+    await s.store.deleteEntry(entryId.presence(doc.id))
+  }
   for (const token of [doc.invites.player, doc.invites.dm]) if (token) await s.store.deleteEntry(entryId.invite(token))
   await s.store.deleteTable(doc.owner_id, doc.id)
   await s.store.deleteEntry(entryId.table(doc.id))

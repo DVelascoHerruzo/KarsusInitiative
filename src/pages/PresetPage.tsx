@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Copy, Eye, EyeOff, Heart, Pencil, Play, Plus, ScrollText, Shield, Trash2, Users, Zap } from 'lucide-react'
 import { toast } from 'sonner'
-import ConfirmDelete from '@/components/ui/ConfirmDelete'
 import Layout, { PageHeader } from '@/components/ui/Layout'
 import { Token } from '@/components/ui/tokens'
 import { CharacterSheetDialog } from '@/features/characters/CharacterSheetDialog'
@@ -12,7 +11,7 @@ import { NotFoundError } from '@/features/encounters/queries'
 import { MembersPanel } from '@/features/members/MembersPanel'
 import { presetKeys, useLaunchPreset, usePreset, usePresetMutations } from '@/features/presets/queries'
 import { cn } from '@/lib/cn'
-import { copyName, duplicateCreature } from '@/lib/combat'
+import { copyName, duplicateCreature, restorable } from '@/lib/combat'
 import { formatModifier } from '@/lib/dice'
 import { uploadImage } from '@/lib/images'
 import { classSummary } from '@/lib/sheet'
@@ -27,7 +26,6 @@ export default function PresetPage() {
   const [editing, setEditing] = useState(false)
   const [formTarget, setFormTarget] = useState<CreatureFormTarget | null>(null)
   const [sheetFor, setSheetFor] = useState<Creature | null>(null)
-  const [removing, setRemoving] = useState<Creature | null>(null)
 
   if (isPending) {
     return (
@@ -142,7 +140,15 @@ export default function PresetPage() {
                     onEdit={() => setFormTarget({ mode: 'edit', creature: c })}
                     onSheet={() => setSheetFor(c)}
                     onToggleHidden={() => m.updateCreature.mutate({ cid: c.id, patch: { hidden: !c.hidden } })}
-                    onDelete={() => setRemoving(c)}
+                    onDelete={() => {
+                      // No confirmation: the toast offers to put it back.
+                      m.removeCreature.mutate(c.id)
+                      const player = playerName(c.player_id)
+                      toast(`${c.name} removed`, {
+                        description: player ? `${player} will need to pick another character.` : undefined,
+                        action: { label: 'Undo', onClick: () => void m.addCreatures.mutateAsync([restorable(c)]).catch(() => {}) },
+                      })
+                    }}
                     onDuplicate={async () => {
                       const { rename, copy } = copyName(c.name, preset.creatures.map((x) => x.name))
                       if (rename) m.updateCreature.mutate({ cid: c.id, patch: { name: rename } })
@@ -202,22 +208,6 @@ export default function PresetPage() {
         initial={sheetFor}
         upload={uploadImage}
         onSubmit={({ initiative: _unused, ...patch }) => m.updateCreature.mutateAsync({ cid: sheetFor!.id, patch })}
-      />
-      <ConfirmDelete
-        open={removing !== null}
-        onClose={() => setRemoving(null)}
-        title="Remove Creature"
-        confirmLabel="Remove"
-        loading={m.removeCreature.isPending}
-        body={
-          removing?.player_id
-            ? `${playerName(removing.player_id) ?? 'Their player'} will need to pick another character. Encounters already launched aren’t affected.`
-            : `Remove “${removing?.name}” from this preset? Encounters already launched from it aren’t affected.`
-        }
-        onConfirm={async () => {
-          if (removing) await m.removeCreature.mutateAsync(removing.id).catch(() => {})
-          setRemoving(null)
-        }}
       />
     </Layout>
   )

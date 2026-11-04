@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto'
-import { advanceTurn, healthBand, sortByInitiative, visibleToPlayers } from '@/lib/combat'
+import { advanceTurn, healthBand, playerTurn } from '@/lib/combat'
 import type {
   Creature,
   CreaturePatch,
@@ -252,7 +252,7 @@ export function toPreset({ kind: _kind, ...preset }: PresetDoc): Preset {
 const summarizeCreatures = (creatures: readonly Creature[]) =>
   creatures.map(({ id, name, image_url, is_player }) => ({ id, name, image_url, is_player }))
 
-export function encounterSummary(d: EncounterDoc): EncounterSummary {
+export function encounterSummary(d: EncounterDoc, live = false): EncounterSummary {
   const { id, owner_id, title, description, background_url, round, active_creature_id, campaign_id, hidden, updated_at } = d
   return {
     id,
@@ -267,6 +267,7 @@ export function encounterSummary(d: EncounterDoc): EncounterSummary {
     updated_at,
     creatures: summarizeCreatures(d.creatures),
     members: d.members.length,
+    live: live && !hidden,
   }
 }
 
@@ -275,14 +276,17 @@ export function presetSummary(d: PresetDoc): PresetSummary {
   return { id, owner_id, name, description, background_url, hidden, updated_at, creatures: summarizeCreatures(d.creatures), members: d.members.length }
 }
 
-export function playerEncounterSummary(d: EncounterDoc, userId: string, campaignName: string | null): PlayerEncounterSummary {
+export function playerEncounterSummary(d: EncounterDoc, userId: string, campaignName: string | null, live = false): PlayerEncounterSummary {
+  const turn = playerTurn(d.creatures, d.active_creature_id, d.round)
   return {
     id: d.id,
     title: d.title,
     description: d.description,
     background_url: d.background_url,
-    round: d.round,
-    started: d.active_creature_id !== null,
+    round: turn.round,
+    started: turn.activeId !== null,
+    live: live && !d.hidden,
+    campaign_id: d.campaign_id,
     campaign_name: campaignName,
     character_name: d.creatures.find((c) => c.player_id === userId && !c.hidden)?.name ?? null,
     updated_at: d.updated_at,
@@ -307,17 +311,15 @@ export const ownCharacter = (c: Creature): Creature => ({ ...c, notes: null })
 
 /** The player view: no DM notes or hidden creatures, and monsters show a health band instead of exact HP or AC. */
 export function redact(doc: EncounterDoc): SharedEncounter {
-  const visible = visibleToPlayers(doc.creatures, doc.active_creature_id !== null)
-  const active = visible.some((c) => c.id === doc.active_creature_id) ? doc.active_creature_id : null
+  const turn = playerTurn(doc.creatures, doc.active_creature_id, doc.round)
   return {
     title: doc.title,
     description: doc.description,
     background_url: doc.background_url,
-    round: doc.round,
-    active_creature_id: active,
-    hidden_turn: doc.active_creature_id !== null && active === null,
+    round: turn.round,
+    active_creature_id: turn.activeId,
     updated_at: doc.updated_at,
-    creatures: sortByInitiative(visible).map((c) => ({
+    creatures: turn.creatures.map((c) => ({
       id: c.id,
       name: c.name,
       is_player: c.is_player,

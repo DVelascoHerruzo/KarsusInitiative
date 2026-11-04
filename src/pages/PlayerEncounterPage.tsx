@@ -9,8 +9,8 @@ import { ConditionsDialog } from '@/features/combat/ConditionsDialog'
 import { HpDialog, type HpMode } from '@/features/combat/HpDialog'
 import { NotFoundError, useLivePings } from '@/features/encounters/queries'
 import { DisplayView } from '@/features/play/DisplayView'
-import { playerKeys, usePlayerEncounter, useUpdateOwnCreature } from '@/features/player/queries'
-import type { CreaturePatch } from '@/lib/types'
+import { playerKeys, usePlayerEncounter, useUpdateCharacter, useUpdateOwnCreature } from '@/features/player/queries'
+import type { CharacterSheet, Creature, CreaturePatch, PlayerEncounter } from '@/lib/types'
 
 /** The visual view for a signed-in player: the same screen as the table, with their own character in their hands. */
 export default function PlayerEncounterPage() {
@@ -18,6 +18,7 @@ export default function PlayerEncounterPage() {
   const qc = useQueryClient()
   const { data, isPending, error } = usePlayerEncounter(id)
   const update = useUpdateOwnCreature(id)
+  const updateCampaignCharacter = useUpdateCharacter(data?.campaign?.id ?? '')
   const [hp, setHp] = useState<{ id: string; mode: HpMode } | null>(null)
   const [conditionsId, setConditionsId] = useState<string | null>(null)
 
@@ -47,12 +48,26 @@ export default function PlayerEncounterPage() {
     if (Object.keys(patch).length) update.mutate({ cid, patch })
   }
 
+  /** A campaign character's slots live on the campaign, so spending one shows in every fight; otherwise on this fight's copy. */
+  function spendSlots(ch: Creature, slots: Pick<CharacterSheet, 'spell_slots' | 'pact_slots'>) {
+    if (!ch.sheet) return
+    const sheet = { ...ch.sheet, ...slots }
+    if (data?.campaign && ch.character_id) {
+      qc.setQueryData<PlayerEncounter>(playerKeys.encounter(id), (e) => e && { ...e, characters: e.characters.map((x) => (x.id === ch.id ? { ...x, sheet } : x)) })
+      updateCampaignCharacter.mutate({ cid: ch.character_id, patch: { sheet } })
+    } else {
+      save(ch.id, { sheet })
+    }
+  }
+
   return (
     <>
       <title>{`${data.title} · Karsus`}</title>
       <DisplayView
         encounter={data}
         mine={data.mine}
+        characters={data.characters}
+        onSlots={spendSlots}
         onHp={(c) => setHp({ id: c.id, mode: 'damage' })}
         onConditions={(c) => setConditionsId(c.id)}
         back={data.campaign ? { to: `/campaigns/${data.campaign.id}`, label: data.campaign.name } : { to: '/', label: 'Your adventures' }}

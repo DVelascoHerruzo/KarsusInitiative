@@ -33,7 +33,8 @@ export const withConditions = <T extends { conditions: unknown }>(c: T) => ({ ..
 // ─── Reads ───────────────────────────────────────────────────────────────────
 
 export function useEncounterList() {
-  return useQuery({ queryKey: keys.encounters, queryFn: () => api.get<EncounterSummary[]>('encounters') })
+  // Refreshes so a co-DM's encounter going live appears on its own.
+  return useQuery({ queryKey: keys.encounters, queryFn: () => api.get<EncounterSummary[]>('encounters'), refetchInterval: 15_000 })
 }
 
 export function useEncounter(id: string) {
@@ -59,8 +60,8 @@ export function useSharedEncounter(token: string) {
         throw e
       }
     },
-    // Live pings drive updates; this is only a safety net for dropped sockets.
-    refetchInterval: 30_000,
+    // Live pings usually arrive first; this keeps the table screen within a couple of seconds regardless.
+    refetchInterval: 2_000,
   })
 }
 
@@ -91,7 +92,7 @@ export function useLivePings(source: string | undefined, onChange: () => void) {
 
     const fire = () => {
       clearTimeout(debounce)
-      debounce = setTimeout(() => latest.current(), 120)
+      debounce = setTimeout(() => latest.current(), 50)
     }
     const reconnect = () => {
       if (closed) return
@@ -220,4 +221,33 @@ export function useDeleteEncounter() {
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.encounters }),
     onError: (error: Error) => toast.error(error.message),
   })
+}
+
+// ─── Presence ────────────────────────────────────────────────────────────────
+
+/**
+ * While the DM has an encounter open (and the tab visible), it's live: it moves to
+ * the top of everyone's encounter list. A heartbeat every 20s; leaving clears it.
+ */
+export function useDmPresence(id: string, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return
+    const beat = () => {
+      if (document.visibilityState === 'visible') api.post(`encounters/${id}/presence`).catch(() => {})
+    }
+    const leave = () => {
+      // keepalive lets the request finish even while the page is unloading.
+      void fetch(`/api/encounters/${id}/presence`, { method: 'DELETE', credentials: 'same-origin', keepalive: true }).catch(() => {})
+    }
+    beat()
+    const timer = setInterval(beat, 20_000)
+    document.addEventListener('visibilitychange', beat)
+    window.addEventListener('pagehide', leave)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', beat)
+      window.removeEventListener('pagehide', leave)
+      leave()
+    }
+  }, [id, enabled])
 }

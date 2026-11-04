@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { ChevronRight, Swords } from 'lucide-react'
+import { ChevronRight, FolderOpen, Swords } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import type { GroupedEncounters } from '@/lib/folders'
 
 interface SceneCardProps {
   to: string
@@ -137,6 +138,53 @@ export function Hero({ eyebrow, title, tagline }: { eyebrow: string; title: stri
         <h1 className="mb-2 font-display text-4xl tracking-widest text-dnd-gold sm:text-5xl">{title}</h1>
         <p className="font-ui text-base text-dnd-muted italic">{tagline}</p>
       </div>
+    </div>
+  )
+}
+
+/**
+ * An encounter list in its folders: live encounters first, under a pulsing
+ * heading, then one collapsible group per folder, then the rest. With no folders
+ * and nothing live it's just the grid.
+ */
+export function EncounterGroups<T extends { id: string }>({
+  groups,
+  render,
+  looseLabel = 'Not in a folder',
+}: {
+  groups: GroupedEncounters<T>
+  render: (encounter: T, folder: string | null) => ReactNode
+  looseLabel?: string
+}) {
+  const plain = groups.live.length === 0 && groups.folders.length === 0
+  if (plain) return <CardGrid>{groups.loose.map((e) => render(e, null))}</CardGrid>
+  return (
+    <div className="space-y-6">
+      {groups.live.length > 0 && (
+        <section aria-label="Live now">
+          <h3 className="mb-3 flex items-center gap-2 font-body text-sm tracking-[0.25em] text-dnd-jade uppercase">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-dnd-jade shadow-glow-jade" /> Live now
+          </h3>
+          <CardGrid>{groups.live.map((e) => render(e, null))}</CardGrid>
+        </section>
+      )}
+      {groups.folders.map((f) => (
+        <details key={f.id} open className="group/folder">
+          <summary className="mb-3 flex cursor-pointer list-none items-center gap-2 font-body text-sm tracking-[0.2em] text-dnd-parchment uppercase select-none [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="h-4 w-4 text-dnd-muted transition-transform group-open/folder:rotate-90" />
+            <FolderOpen className="h-4 w-4 text-dnd-gold" />
+            {f.name}
+            <span className="rounded-full bg-dnd-surface px-2 py-0.5 text-xs tracking-normal text-dnd-muted normal-case">{f.encounters.length}</span>
+          </summary>
+          <CardGrid>{f.encounters.map((e) => render(e, f.name))}</CardGrid>
+        </details>
+      ))}
+      {groups.loose.length > 0 && (
+        <section aria-label={looseLabel}>
+          <h3 className="mb-3 font-body text-sm tracking-[0.2em] text-dnd-muted uppercase">{looseLabel}</h3>
+          <CardGrid>{groups.loose.map((e) => render(e, null))}</CardGrid>
+        </section>
+      )}
     </div>
   )
 }
