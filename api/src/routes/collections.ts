@@ -47,6 +47,16 @@ export async function usernames(s: Services, ids: Iterable<string>): Promise<Map
 
 const visibleEncounters = (docs: readonly EncounterDoc[]) => docs.filter((e) => !e.hidden)
 
+/** A DM's heartbeat arrives every 20s; two missed beats and the encounter stops being live. */
+export const LIVE_FOR_MS = 50_000
+
+/** The encounters a DM has open right now. One point read each. */
+export async function liveIds(s: Services, ids: readonly string[]): Promise<Set<string>> {
+  const since = s.now().getTime() - LIVE_FOR_MS
+  const entries = await Promise.all(ids.map((id) => s.store.getEntry(entryId.presence(id), 'presence')))
+  return new Set(ids.filter((_, i) => (entries[i]?.at ?? 0) > since))
+}
+
 /** Everything on a player's side of the table: their campaigns and the fights open to them. */
 export async function playerHome(s: Services, userId: string): Promise<PlayerHome> {
   const campaigns = (await joined(s, userId, 'preset', 'player')).filter((c) => !c.hidden)
@@ -70,11 +80,11 @@ export async function playerHome(s: Services, userId: string): Promise<PlayerHom
     }
   })
 
+  const encounters = unique([...direct, ...viaCampaign]).sort(byUpdated)
+  const live = await liveIds(s, encounters.map((e) => e.id))
   return {
     campaigns: summaries,
-    encounters: unique([...direct, ...viaCampaign])
-      .sort(byUpdated)
-      .map((e) => table.playerEncounterSummary(e, userId, e.campaign_id ? (campaignName.get(e.campaign_id) ?? null) : null)),
+    encounters: encounters.map((e) => table.playerEncounterSummary(e, userId, e.campaign_id ? (campaignName.get(e.campaign_id) ?? null) : null, live.has(e.id))),
   }
 }
 
@@ -84,6 +94,7 @@ export async function campaignView(s: Services, campaign: PresetDoc, userId: str
   const names = await usernames(s, [campaign.owner_id, ...party.flatMap((c) => (c.player_id ? [c.player_id] : []))])
   const mine = party.find((c) => c.player_id === userId)
   const encounters = visibleEncounters(await campaignEncounters(s, [campaign])).sort(byUpdated)
+  const live = await liveIds(s, encounters.map((e) => e.id))
   return {
     id: campaign.id,
     name: campaign.name,
@@ -93,6 +104,6 @@ export async function campaignView(s: Services, campaign: PresetDoc, userId: str
     party: party.map((c) => table.partyMember(c, names)),
     mine: mine ? table.ownCharacter(mine) : null,
     available: table.availableCharacters(campaign).map((c) => table.partyMember(c, names)),
-    encounters: encounters.map((e) => table.playerEncounterSummary(e, userId, campaign.name)),
+    encounters: encounters.map((e) => table.playerEncounterSummary(e, userId, campaign.name, live.has(e.id))),
   }
 }

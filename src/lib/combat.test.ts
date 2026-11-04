@@ -1,4 +1,4 @@
-import { advanceTurn, applyDamage, applyHealing, copyName, grantTempHp, healthBand, nextUp, numberedNames, sortByInitiative, turnDirection } from './combat'
+import { advanceTurn, applyDamage, applyHealing, copyName, grantTempHp, healthBand, nextUp, numberedNames, playerTurn, sortByInitiative, turnDirection } from './combat'
 import type { Condition } from './types'
 
 function c(id: string, initiative: number, extra: { bonus?: number; conditions?: Condition[]; at?: string } = {}) {
@@ -114,6 +114,39 @@ describe('numberedNames', () => {
     expect(numberedNames('Goblin', 3, [])).toEqual(['Goblin 1', 'Goblin 2', 'Goblin 3'])
     expect(numberedNames('Goblin', 2, ['Goblin 1', 'Goblin 4'])).toEqual(['Goblin 5', 'Goblin 6'])
     expect(numberedNames('Goblin', 1, ['Goblin'])).toEqual(['Goblin 1'])
+  })
+})
+
+describe('playerTurn', () => {
+  const who = (id: string, initiative: number, extra: { hidden?: boolean; pc?: boolean; dead?: boolean } = {}) => ({
+    ...c(id, initiative, { conditions: extra.dead ? [{ key: 'dead', rounds: null }] : [] }),
+    hidden: extra.hidden ?? false,
+    is_player: extra.pc ?? false,
+  })
+  const fight = [who('vex', 20, { pc: true }), who('lurker', 15, { hidden: true }), who('goblin', 10), who('wraith', 25, { hidden: true })]
+
+  it('shows a visible creature’s turn as it is', () => {
+    expect(playerTurn(fight, 'goblin', 2)).toMatchObject({ activeId: 'goblin', round: 2 })
+  })
+
+  it('keeps showing whoever acted before a hidden creature', () => {
+    expect(playerTurn(fight, 'lurker', 2)).toMatchObject({ activeId: 'vex', round: 2 })
+  })
+
+  it('stays in the previous round when the hidden creature opens a new one', () => {
+    expect(playerTurn(fight, 'wraith', 3)).toMatchObject({ activeId: 'goblin', round: 2 })
+  })
+
+  it('hasn’t started for the players when a hidden creature opens the fight', () => {
+    const turn = playerTurn(fight, 'wraith', 1)
+    expect(turn).toMatchObject({ activeId: null, round: 1 })
+    expect(turn.creatures.map((x) => x.id)).toEqual(['vex'])
+  })
+
+  it('skips the dead on the way back, and never lists hidden creatures', () => {
+    const turn = playerTurn([...fight.slice(0, 2), who('goblin', 10, { dead: true }), fight[3]!], 'lurker', 2)
+    expect(turn.activeId).toBe('vex')
+    expect(turn.creatures.map((x) => x.id)).toEqual(['vex', 'goblin'])
   })
 })
 

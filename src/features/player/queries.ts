@@ -24,7 +24,8 @@ export const playerKeys = {
 const onError = (error: Error) => toast.error(error.message)
 
 export function usePlayerHome() {
-  return useQuery({ queryKey: playerKeys.home, queryFn: () => api.get<PlayerHome>('player') })
+  // Often enough that a fight going live shows up without a reload.
+  return useQuery({ queryKey: playerKeys.home, queryFn: () => api.get<PlayerHome>('player'), refetchInterval: 10_000 })
 }
 
 export function useCampaign(id: string) {
@@ -34,6 +35,7 @@ export function useCampaign(id: string) {
       const view = await orNotFound(api.get<CampaignView>(`presets/${id}/campaign`))
       return { ...view, mine: view.mine && withConditions(view.mine) }
     },
+    refetchInterval: 10_000,
   })
 }
 
@@ -88,10 +90,11 @@ export function usePlayerEncounter(id: string) {
     queryKey: playerKeys.encounter(id),
     queryFn: async () => {
       const view = await orNotFound(api.get<PlayerEncounter>(`encounters/${id}/view`))
-      return { ...view, creatures: view.creatures.map(withConditions) }
+      return { ...view, creatures: view.creatures.map(withConditions), characters: view.characters.map(withConditions) }
     },
-    // Live pings drive updates; this is only a safety net for dropped sockets.
-    refetchInterval: 30_000,
+    // Live pings usually arrive first; polling this often keeps players within a couple of
+    // seconds of the DM even when the socket drops. It pauses while the tab is hidden.
+    refetchInterval: 2_000,
   })
 }
 
@@ -104,7 +107,8 @@ export function useUpdateOwnCreature(encounterId: string) {
     onMutate: async ({ cid, patch }) => {
       await qc.cancelQueries({ queryKey: key })
       const previous = qc.getQueryData<PlayerEncounter>(key)
-      qc.setQueryData<PlayerEncounter>(key, (e) => e && { ...e, creatures: e.creatures.map((c) => (c.id === cid ? { ...c, ...patch } : c)) })
+      const apply = <T extends { id: string }>(list: T[]) => list.map((c) => (c.id === cid ? { ...c, ...patch } : c))
+      qc.setQueryData<PlayerEncounter>(key, (e) => e && { ...e, creatures: apply(e.creatures), characters: apply(e.characters) })
       return { previous }
     },
     onError: (error: Error, _vars, ctx) => {

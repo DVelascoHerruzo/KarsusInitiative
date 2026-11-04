@@ -149,7 +149,7 @@ export interface EncounterRow {
 
 export type Encounter = EncounterRow & { creatures: Creature[] }
 export type EncounterPatch = Partial<
-  Pick<EncounterRow, 'title' | 'description' | 'background_url' | 'round' | 'active_creature_id' | 'share_enabled' | 'hidden'>
+  Pick<EncounterRow, 'title' | 'description' | 'background_url' | 'round' | 'active_creature_id' | 'share_enabled' | 'hidden' | 'campaign_id'>
 >
 export type NewEncounter = Pick<EncounterRow, 'title' | 'description' | 'background_url'>
 
@@ -181,6 +181,8 @@ export type EncounterSummary = Pick<
 > & {
   creatures: CreatureSummary[]
   members: number
+  /** Not hidden, and a DM has it open right now. */
+  live: boolean
 }
 
 export type PresetSummary = Pick<PresetRow, 'id' | 'owner_id' | 'name' | 'description' | 'background_url' | 'hidden' | 'updated_at'> & {
@@ -209,11 +211,10 @@ export interface SharedEncounter {
   title: string
   description: string | null
   background_url: string | null
+  /** As players see it: a hidden creature's turn doesn't move it (see playerTurn). */
   round: number
-  /** null before combat starts, and while a hidden creature acts. */
+  /** null before combat starts. While a hidden creature acts, still whoever acted before it. */
   active_creature_id: string | null
-  /** A hidden creature is acting: players see that something moves, not what. */
-  hidden_turn: boolean
   updated_at: string
   creatures: SharedCreature[]
 }
@@ -223,6 +224,8 @@ export interface PlayerEncounter extends SharedEncounter {
   id: string
   /** Creatures this player controls; they may change their HP and conditions. */
   mine: string[]
+  /** Those creatures in full (minus DM notes), for the character panel under the turn order. */
+  characters: Creature[]
   campaign: { id: string; name: string } | null
 }
 
@@ -246,6 +249,9 @@ export interface PlayerEncounterSummary {
   background_url: string | null
   round: number
   started: boolean
+  /** A DM has it open right now. */
+  live: boolean
+  campaign_id: string | null
   campaign_name: string | null
   character_name: string | null
   updated_at: string

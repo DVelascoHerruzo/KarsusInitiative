@@ -11,6 +11,7 @@ import { CharacterSheetDialog, type CharacterDraft } from '@/features/characters
 import { CharacterSheetView } from '@/features/characters/CharacterSheetView'
 import { NotFoundError } from '@/features/encounters/queries'
 import { useCampaign, useCharacterChoice, useLeave, useUpdateCharacter } from '@/features/player/queries'
+import { cn } from '@/lib/cn'
 import { timeAgo } from '@/lib/format'
 import { uploadImage } from '@/lib/images'
 import { classSummary } from '@/lib/sheet'
@@ -129,16 +130,22 @@ export default function CampaignPage() {
                 <p className="font-ui text-sm text-dnd-muted italic">When {campaign.dm_name} starts a fight for this campaign, it appears here.</p>
               ) : (
                 <ul className="space-y-1.5">
-                  {campaign.encounters.map((e) => (
+                  {/* Live first: the fight the DM is running right now. */}
+                  {[...campaign.encounters].sort((a, b) => Number(b.live) - Number(a.live)).map((e) => (
                     <li key={e.id}>
                       <Link
                         to={`/encounters/${e.id}/view`}
-                        className="group flex items-center gap-3 rounded-lg border border-dnd-border/40 bg-dnd-dark/60 px-3 py-2 transition-colors hover:border-dnd-gold/50"
+                        className={cn(
+                          'group flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors hover:border-dnd-gold/50',
+                          e.live ? 'border-dnd-jade/60 bg-dnd-teal/15 shadow-glow-jade' : 'border-dnd-border/40 bg-dnd-dark/60',
+                        )}
                       >
-                        <span className={e.started ? 'h-2 w-2 animate-pulse rounded-full bg-dnd-jade' : 'h-2 w-2 rounded-full bg-dnd-border'} />
+                        <span className={e.live || e.started ? 'h-2 w-2 animate-pulse rounded-full bg-dnd-jade' : 'h-2 w-2 rounded-full bg-dnd-border'} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-body text-sm text-dnd-parchment group-hover:text-dnd-gold">{e.title}</span>
-                          <span className="font-ui text-xs text-dnd-muted italic">{e.started ? `Round ${e.round}, in progress` : `Edited ${timeAgo(e.updated_at)}`}</span>
+                          <span className="font-ui text-xs text-dnd-muted italic">
+                            {e.live ? 'Live now' : e.started ? `Round ${e.round}, in progress` : `Edited ${timeAgo(e.updated_at)}`}
+                          </span>
                         </span>
                       </Link>
                     </li>
