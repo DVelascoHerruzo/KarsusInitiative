@@ -16,15 +16,16 @@ import type { CharacterSheet, Creature, CreaturePatch, PlayerEncounter } from '@
 export default function PlayerEncounterPage() {
   const { id = '' } = useParams()
   const qc = useQueryClient()
-  const { data, isPending, error } = usePlayerEncounter(id)
   const update = useUpdateOwnCreature(id)
+  // A closed or missing fight answers 404 here too, which simply stops the socket.
+  const live = useLivePings(`encounters/${id}/live`, () => {
+    if (!update.isPending) void qc.invalidateQueries({ queryKey: playerKeys.encounter(id) })
+  })
+  const { data, isPending, error } = usePlayerEncounter(id, live)
   const updateCampaignCharacter = useUpdateCharacter(data?.campaign?.id ?? '')
   const [hp, setHp] = useState<{ id: string; mode: HpMode } | null>(null)
   const [conditionsId, setConditionsId] = useState<string | null>(null)
 
-  useLivePings(data ? `encounters/${id}/live` : undefined, () => {
-    if (!update.isPending) void qc.invalidateQueries({ queryKey: playerKeys.encounter(id) })
-  })
 
   if (isPending) return <FullScreenLoader label="Entering the battlefield…" />
 

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { FolderInput, Link2, Scroll, Swords } from 'lucide-react'
 import { toast } from 'sonner'
 import { CardGrid, CardSkeletons, EmptyCard, EncounterGroups, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
@@ -7,7 +8,7 @@ import Layout from '@/components/ui/Layout'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { MoveDialog, NewFolderButton } from '@/features/folders/FolderDialogs'
 import { useFolders } from '@/features/folders/queries'
-import { usePlayerHome } from '@/features/player/queries'
+import { campaignQuery, playerEncounterQuery, usePlayerHome } from '@/features/player/queries'
 import type { PlayerEncounterSummary } from '@/lib/types'
 import { groupEncounters } from '@/lib/folders'
 
@@ -19,6 +20,7 @@ function inviteToken(text: string): string | null {
 export default function PlayerHomePage() {
   const { displayName } = useAuth()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const home = usePlayerHome()
   const [link, setLink] = useState('')
   const [filing, setFiling] = useState<PlayerEncounterSummary | null>(null)
@@ -75,6 +77,7 @@ export default function PlayerHomePage() {
                 <SceneCard
                   key={c.id}
                   to={`/campaigns/${c.id}`}
+                  onPrefetch={() => void qc.prefetchQuery(campaignQuery(c.id))}
                   glow="gold"
                   title={c.name}
                   description={c.description}
@@ -120,6 +123,7 @@ export default function PlayerHomePage() {
                 <SceneCard
                   key={e.id}
                   to={`/encounters/${e.id}/view`}
+                  onPrefetch={() => void qc.prefetchQuery(playerEncounterQuery(e.id))}
                   title={e.title}
                   description={e.description}
                   background={e.background_url}

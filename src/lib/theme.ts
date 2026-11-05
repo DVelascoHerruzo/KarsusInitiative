@@ -162,11 +162,3 @@ export function useTealTheme() {
     return () => applyTheme(savedTheme())
   }, [])
 }
-
-/** Marks a page as a screen the table watches, which hides the Ko-fi button. */
-export function useDisplayScreen() {
-  useEffect(() => {
-    document.documentElement.setAttribute('data-display', '')
-    return () => document.documentElement.removeAttribute('data-display')
-  }, [])
-}

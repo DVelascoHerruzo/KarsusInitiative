@@ -32,12 +32,21 @@ export async function verify(s: Services, token: string): Promise<JWTPayload | n
   }
 }
 
+/**
+ * Cookies are scoped to /api: only the API reads them, so the browser doesn't
+ * attach them to every page, script, font and image request.
+ */
 export function cookie(s: Services, name: string, value: string, maxAgeSeconds: number): Cookie {
-  return { name, value, path: '/', httpOnly: true, secure: !s.config.dev, sameSite: 'Lax', maxAge: maxAgeSeconds }
+  return { name, value, path: '/api', httpOnly: true, secure: !s.config.dev, sameSite: 'Lax', maxAge: maxAgeSeconds }
 }
 
 export function expiredCookie(s: Services, name: string): Cookie {
   return { ...cookie(s, name, '', 0), expires: new Date(0) }
+}
+
+/** Before cookies moved to /api they were set on the whole site; this clears that old copy. */
+export function expiredLegacyCookie(s: Services, name: string): Cookie {
+  return { ...expiredCookie(s, name), path: '/' }
 }
 
 export async function sessionCookie(s: Services, user: UserEntry): Promise<Cookie> {
@@ -60,4 +69,10 @@ export async function requireUser(s: Services, req: ApiRequest): Promise<UserEnt
   return user
 }
 
-export const publicUser = (u: UserEntry): User => ({ id: u.user_id, email: u.email, username: u.username, mode: u.mode ?? 'dm' })
+export const publicUser = (u: UserEntry): User => ({
+  id: u.user_id,
+  email: u.email,
+  username: u.username,
+  mode: u.mode ?? 'dm',
+  sign_in: { password: u.password_hash !== null, google: u.google_sub !== null },
+})

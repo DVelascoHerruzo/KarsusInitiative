@@ -19,7 +19,8 @@ describe('accounts', () => {
   it('sets the session as an HttpOnly, SameSite=Lax, secure cookie', async () => {
     const app = testApp()
     const res = await app.call('POST', '/api/auth/signup', { body: { email: 'a@b.co', username: 'A', password: PASSWORD } })
-    expect(res.cookies[0]).toMatchObject({ name: 'karsus_session', httpOnly: true, sameSite: 'Lax', secure: true, path: '/' })
+    // Scoped to the API, so pages, scripts and images are fetched without it.
+    expect(res.cookies[0]).toMatchObject({ name: 'karsus_session', httpOnly: true, sameSite: 'Lax', secure: true, path: '/api' })
   })
 
   it('refuses a second account on the same email, in any letter case', async () => {

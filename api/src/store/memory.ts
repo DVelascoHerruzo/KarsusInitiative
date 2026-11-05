@@ -4,7 +4,7 @@ import type { DocOf, EncounterDoc, Entry, EntryOf, Kind, Store, TableDoc } from 
  * Everything in process memory, with the same ETag semantics as Cosmos. Used by
  * the tests and by `func start` when KARSUS_DEV=1 and no Cosmos is configured.
  */
-export function memoryStore(): Store {
+export function memoryStore(): Store & { dump(): unknown[] } {
   const tables = new Map<string, { doc: TableDoc; etag: string }>()
   const entries = new Map<string, Entry>()
   let version = 0
@@ -12,6 +12,8 @@ export function memoryStore(): Store {
   const key = (ownerId: string, id: string) => `${ownerId}/${id}`
 
   return {
+    /** Everything stored, for tests that check what is (and isn't) kept. */
+    dump: () => [...tables.values()].map((t) => t.doc).concat([...entries.values()] as never[]),
     async listTables<K extends Kind>(ownerId: string, kind: K) {
       return [...tables.values()]
         .map((t) => t.doc)

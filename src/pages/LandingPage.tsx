@@ -1,19 +1,14 @@
 import { Link } from 'react-router'
 import { ChevronRight, Monitor, ScrollText, Sword, Users } from 'lucide-react'
 import { Logo } from '@/components/ui/Layout'
+import { LegalFooter } from '@/components/ui/LegalFooter'
 import { useTealTheme } from '@/lib/theme'
 
 const FEATURES = [
   { icon: Sword, title: 'Live Turn Tracker', desc: 'Control initiative from your phone, watch it update on the big screen instantly.' },
-  { icon: Monitor, title: 'Visual Display Mode', desc: 'Project a cinematic battle view with creature portraits and HP bars.' },
+  { icon: Monitor, title: 'Player View', desc: 'Put a cinematic battle view on a TV or every phone, with portraits and HP bars.' },
   { icon: ScrollText, title: 'Campaigns', desc: 'Save your party and monster groups once, and launch them into any encounter in seconds.' },
-  { icon: Users, title: 'Campaigns & Players', desc: 'Invite your players with a link. They keep their own sheets, or import them from D&D Beyond.' },
-]
-
-const MAP_CREDIT = [
-  { href: 'https://smitchellmaps.com', label: 'smitchellmaps.com' },
-  { href: 'https://patreon.com/smitchellmaps', label: 'Patreon: @smitchellmaps' },
-  { href: 'https://instagram.com/smitchellarts', label: 'Instagram: @smitchellarts' },
+  { icon: Users, title: 'Players & Characters', desc: 'Invite your players with a link. They keep their own sheets, or import them from D&D Beyond.' },
 ]
 
 export default function LandingPage() {
@@ -24,7 +19,7 @@ export default function LandingPage() {
       <title>Karsus – D&D Initiative Tracker</title>
       {/* Background: lighter at the top so the navbar reads, heavier toward the bottom to anchor the copy. */}
       <div className="absolute inset-0 z-0">
-        <img src="/bg-city.jpg" alt="" className="h-full w-full object-cover object-center" />
+        <img src="/background.jpg" alt="" fetchPriority="high" className="h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-dnd-black/60 via-dnd-black/45 to-dnd-black/85" />
         <div className="absolute inset-0 bg-gradient-to-r from-dnd-teal/10 via-transparent to-transparent" />
       </div>
@@ -77,16 +72,6 @@ export default function LandingPage() {
 
       <footer className="relative z-10 border-t border-dnd-border/30 bg-dnd-dark/60 backdrop-blur-sm">
         <div className="mx-auto max-w-5xl px-8 py-6">
-          {/* Map art credit: on phones, above the features */}
-          <div className="mb-6 border-b border-dnd-border/30 pb-5 text-center font-ui text-[10px] leading-relaxed text-white/50 xl:hidden">
-            <p className="mb-2 font-body tracking-[0.2em] text-white/40 uppercase">Map Art</p>
-            {MAP_CREDIT.map((l) => (
-              <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className="block transition-colors hover:text-white/80">
-                {l.label}
-              </a>
-            ))}
-          </div>
-
           <div className="grid grid-cols-1 gap-6 text-center sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex flex-col items-center gap-2">
@@ -98,15 +83,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Map art credit: on wider screens, bottom right */}
-        <div className="absolute right-6 bottom-3 hidden text-right font-ui text-[10px] leading-relaxed text-white/50 sm:right-8 xl:block">
-          <p className="mb-1 font-body tracking-[0.2em] text-white/40 uppercase">Map Art</p>
-          {MAP_CREDIT.map((l) => (
-            <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className="block transition-colors hover:text-white/80">
-              {l.label}
-            </a>
-          ))}
-        </div>
+        <LegalFooter className="border-t border-dnd-border/30 px-6 py-3 text-center font-ui text-[11px] leading-relaxed text-white/60" />
       </footer>
     </div>
   )
