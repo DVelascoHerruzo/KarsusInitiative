@@ -17,6 +17,8 @@ export interface Live {
 export interface Images {
   /** Stores the bytes and returns their public URL. */
   put(path: string, bytes: Uint8Array, contentType: string): Promise<string>
+  /** Deletes every image under a folder (an account's uploads, when it's deleted). */
+  removeAll(prefix: string): Promise<void>
 }
 
 export interface Mail {
@@ -104,6 +106,9 @@ function blobImages(connectionString: string, containerName: string): Images {
       // Every upload gets a new name, so browsers and Cloudflare may cache it forever.
       await blob.uploadData(bytes, { blobHTTPHeaders: { blobContentType: contentType, blobCacheControl: 'public, max-age=31536000, immutable' } })
       return blob.url
+    },
+    async removeAll(prefix) {
+      for await (const blob of container.listBlobsFlat({ prefix })) await container.deleteBlob(blob.name, { deleteSnapshots: 'include' })
     },
   }
 }

@@ -1,9 +1,10 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { clearGoogleState, finishGoogle, startGoogle, type GoogleProfile } from '../auth/google'
-import { hashPassword, spendPasswordTime, verifyPassword } from '../auth/password'
-import { SESSION_COOKIE, currentUser, expiredCookie, publicUser, requireUser, sessionCookie } from '../auth/session'
+import { hashPassword, isBreached, spendPasswordTime, verifyPassword } from '../auth/password'
+import { SESSION_COOKIE, currentUser, expiredCookie, expiredLegacyCookie, publicUser, requireUser, sessionCookie } from '../auth/session'
 import * as v from '../domain/validate'
 import { HttpError, json, noContent, readJson, redirect } from '../http'
+import { clientIp, rateLimit } from '../rate'
 import type { Services } from '../services'
 import { entryId, type UserEntry } from '../store/types'
 import type { Route } from './route'
@@ -35,7 +36,16 @@ async function createUser(s: Services, fields: Pick<UserEntry, 'email' | 'userna
   return user
 }
 
-async function userByEmail(s: Services, email: string): Promise<UserEntry | null> {
+/** A new password: long enough, and not one that has leaked in a known breach. */
+export async function newPassword(s: Services, value: unknown): Promise<string> {
+  const password = v.password(value)
+  if (await isBreached(password, s.fetch)) {
+    throw new HttpError(400, 'That password has appeared in a data breach, so attackers try it first. Choose a different one.')
+  }
+  return password
+}
+
+export async function userByEmail(s: Services, email: string): Promise<UserEntry | null> {
   const alias = await s.store.getEntry(entryId.email(email), 'alias')
   return alias ? s.store.getEntry(entryId.user(alias.user_id), 'user') : null
 }
@@ -82,7 +92,7 @@ export const authRoutes: Route[] = [
         const user = await currentUser(s, req)
         // `google` tells the sign-in page whether to offer "Continue with Google".
         // Every app load renews the session, so people who keep coming back stay signed in.
-        const cookies = user ? [await sessionCookie(s, user)] : []
+        const cookies = user ? [expiredLegacyCookie(s, SESSION_COOKIE), await sessionCookie(s, user)] : []
         return json({ user: user && publicUser(user), google: s.config.google !== null }, 200, { cookies })
       },
       /** Account preferences: the side of the table to open on. */
@@ -104,10 +114,11 @@ export const authRoutes: Route[] = [
     route: 'auth/signup',
     methods: {
       async POST(req, s) {
+        await rateLimit(s, 'signup', clientIp(req))
         const body = await readJson(req)
         const email = v.email(body.email)
         const username = v.username(body.username)
-        const password = v.password(body.password)
+        const password = await newPassword(s, body.password)
         const user = await createUser(s, { email, username, password_hash: await hashPassword(password), email_verified: false, google_sub: null })
         return json({ user: publicUser(user) }, 201, { cookies: [await sessionCookie(s, user)] })
       },
@@ -118,6 +129,7 @@ export const authRoutes: Route[] = [
     route: 'auth/signin',
     methods: {
       async POST(req, s) {
+        await rateLimit(s, 'signin', clientIp(req))
         const body = await readJson(req)
         const email = v.email(body.email)
         const password = typeof body.password === 'string' ? body.password : ''
@@ -148,7 +160,7 @@ export const authRoutes: Route[] = [
     route: 'auth/signout',
     methods: {
       async POST(_req, s) {
-        return noContent({ cookies: [expiredCookie(s, SESSION_COOKIE)] })
+        return noContent({ cookies: [expiredLegacyCookie(s, SESSION_COOKIE), expiredCookie(s, SESSION_COOKIE)] })
       },
     },
   },
@@ -160,6 +172,9 @@ export const authRoutes: Route[] = [
         const email = v.email((await readJson(req)).email)
         // Checked before the lookup, so the answer never depends on whether the account exists.
         if (!s.mail) throw new HttpError(503, 'Password reset email isn’t set up on this server')
+        // Caps reset emails per address too, so nobody can flood someone's inbox.
+        await rateLimit(s, 'forgotByIp', clientIp(req))
+        await rateLimit(s, 'forgotByEmail', email)
 
         const user = await userByEmail(s, email)
         if (user) {
@@ -188,8 +203,9 @@ export const authRoutes: Route[] = [
     route: 'auth/reset',
     methods: {
       async POST(req, s) {
+        await rateLimit(s, 'reset', clientIp(req))
         const body = await readJson(req)
-        const password = v.password(body.password)
+        const password = await newPassword(s, body.password)
         const token = typeof body.token === 'string' ? body.token : ''
         const id = entryId.reset(sha256(token))
         const reset = token ? await s.store.getEntry(id, 'reset') : null

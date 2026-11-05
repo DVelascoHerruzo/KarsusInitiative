@@ -90,7 +90,15 @@ export interface FoldersEntry extends Folders {
   kind: 'folders'
 }
 
-export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry | FoldersEntry
+/** A rate-limit counter for one window. The key is hashed into the id. */
+export interface RateEntry {
+  id: string
+  kind: 'rate'
+  count: number
+  ttl: number
+}
+
+export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry | FoldersEntry | RateEntry
 export type EntryOf<K extends Entry['kind']> = Extract<Entry, { kind: K }>
 
 /** Item ids can't contain / \ ? #, so free text is URI-encoded. */

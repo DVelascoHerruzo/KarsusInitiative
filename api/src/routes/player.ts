@@ -2,6 +2,7 @@ import { requireUser } from '../auth/session'
 import { characterIdFromUrl, characterJsonUrl, fromDndBeyond, type DdbCharacter } from '../domain/dndbeyond'
 import * as v from '../domain/validate'
 import { HttpError, json, readJson } from '../http'
+import { rateLimit } from '../rate'
 import { playerHome } from './collections'
 import type { Route } from './route'
 
@@ -25,7 +26,8 @@ export const playerRoutes: Route[] = [
     methods: {
       /** Reads a public D&D Beyond character into a draft the player checks before saving. Nothing is stored. */
       async POST(req, s) {
-        await requireUser(s, req)
+        const user = await requireUser(s, req)
+        await rateLimit(s, 'import', user.user_id)
         const body = await readJson(req)
         const id = typeof body.url === 'string' ? characterIdFromUrl(body.url) : null
         if (!id) throw new HttpError(400, 'Paste a D&D Beyond character link, like dndbeyond.com/characters/123456')

@@ -6,7 +6,6 @@ import { HealthTag, HpBar, StatusPill, Token } from '@/components/ui/tokens'
 import { healthBand, nextUp, playerTurn, turnDirection } from '@/lib/combat'
 import { hasCondition } from '@/lib/conditions'
 import { cn } from '@/lib/cn'
-import { useDisplayScreen } from '@/lib/theme'
 import type { CharacterSheet, Creature, Encounter, SharedCreature, SharedEncounter } from '@/lib/types'
 import { useHotkeys } from '@/lib/useHotkeys'
 import { CharacterSheetView } from '@/features/characters/CharacterSheetView'
@@ -92,7 +91,6 @@ interface DisplayViewProps {
 export function DisplayView({ encounter: e, mine = [], characters = [], onHp, onConditions, onSlots, back, label = 'Player View · Live sync' }: DisplayViewProps) {
   const [fullscreen, toggleFullscreen] = useFullscreen()
   useWakeLock()
-  useDisplayScreen()
 
   const sorted = e.creatures
   const activeIdx = sorted.findIndex((c) => c.id === e.active_creature_id)

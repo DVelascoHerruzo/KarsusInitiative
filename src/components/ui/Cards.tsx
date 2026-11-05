@@ -21,13 +21,15 @@ interface SceneCardProps {
   /** The glow colour on hover. */
   glow?: 'teal' | 'gold'
   live?: boolean
+  /** Starts loading the page behind the card as soon as the pointer or keyboard reaches it, so opening it feels instant. */
+  onPrefetch?: () => void
 }
 
 /**
  * The home screens' card for encounters and campaigns. The whole card is a link.
  * Like a file browser: a grid of small tiles on wider screens, a details list on a phone.
  */
-export function SceneCard({ to, title, description, background, strip, creatures, tags = [], tools, action, glow = 'teal', live }: SceneCardProps) {
+export function SceneCard({ to, title, description, background, strip, creatures, tags = [], tools, action, glow = 'teal', live, onPrefetch }: SceneCardProps) {
   const labels = (
     <>
       <span className={cn('rounded bg-dnd-black/50 px-2 py-0.5 font-body text-[10px] tracking-widest backdrop-blur-sm', live ? 'text-dnd-jade' : 'text-dnd-amber/80')}>
@@ -42,6 +44,8 @@ export function SceneCard({ to, title, description, background, strip, creatures
   )
   return (
     <div
+      onPointerEnter={onPrefetch}
+      onFocus={onPrefetch}
       className={cn(
         'dnd-card group relative flex items-center overflow-hidden transition-all duration-300 sm:block',
         glow === 'gold' ? 'hover:border-dnd-gold/60 hover:shadow-glow-gold' : 'hover:border-dnd-teal/60 hover:shadow-glow-teal',

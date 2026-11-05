@@ -10,8 +10,8 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
 import { MoveDialog, NewFolderButton } from '@/features/folders/FolderDialogs'
 import { useFolders } from '@/features/folders/queries'
-import { keys, useCreateEncounter, useDeleteEncounter, useEncounterList } from '@/features/encounters/queries'
-import { presetKeys, useCreatePreset, useDeletePreset, useLaunchPreset, usePresetList } from '@/features/presets/queries'
+import { encounterQuery, keys, useCreateEncounter, useDeleteEncounter, useEncounterList } from '@/features/encounters/queries'
+import { presetKeys, presetQuery, useCreatePreset, useDeletePreset, useLaunchPreset, usePresetList } from '@/features/presets/queries'
 import { api } from '@/lib/api'
 import { groupEncounters } from '@/lib/folders'
 import { uploadImage } from '@/lib/images'
@@ -142,6 +142,7 @@ export default function DashboardPage() {
                 <SceneCard
                   key={e.id}
                   to={`/encounters/${e.id}`}
+                  onPrefetch={() => void qc.prefetchQuery(encounterQuery(e.id))}
                   title={e.title}
                   description={e.description}
                   background={e.background_url}
@@ -192,6 +193,7 @@ export default function DashboardPage() {
                 <SceneCard
                   key={p.id}
                   to={`/presets/${p.id}`}
+                  onPrefetch={() => void qc.prefetchQuery(presetQuery(p.id))}
                   glow="gold"
                   title={p.name}
                   description={p.description}
@@ -239,15 +241,11 @@ export default function DashboardPage() {
         open={deleting !== null}
         onClose={() => setDeleting(null)}
         name={deleting?.name}
-        loading={deleteEncounter.isPending || deletePreset.isPending}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (!deleting) return
-          try {
-            await (deleting.kind === 'encounter' ? deleteEncounter : deletePreset).mutateAsync(deleting.id)
-            toast.success(deleting.kind === 'encounter' ? 'Encounter deleted' : 'Campaign deleted')
-          } catch {
-            // The mutation already reported the error.
-          }
+          // It leaves the list straight away; the delete finishes in the background, and a failure brings it back.
+          ;(deleting.kind === 'encounter' ? deleteEncounter : deletePreset).mutate(deleting.id)
+          toast.success(deleting.kind === 'encounter' ? 'Encounter deleted' : 'Campaign deleted')
           setDeleting(null)
         }}
       />

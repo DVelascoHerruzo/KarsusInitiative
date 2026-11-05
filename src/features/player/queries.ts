@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import type {
@@ -12,7 +12,7 @@ import type {
   PlayerHome,
   Role,
 } from '@/lib/types'
-import { orNotFound, withConditions } from '@/features/encounters/queries'
+import { orNotFound, pollEvery, withConditions } from '@/features/encounters/queries'
 
 export const playerKeys = {
   home: ['player'] as const,
@@ -28,15 +28,17 @@ export function usePlayerHome() {
   return useQuery({ queryKey: playerKeys.home, queryFn: () => api.get<PlayerHome>('player'), refetchInterval: 10_000 })
 }
 
-export function useCampaign(id: string) {
-  return useQuery({
+export const campaignQuery = (id: string) =>
+  queryOptions({
     queryKey: playerKeys.campaign(id),
     queryFn: async () => {
       const view = await orNotFound(api.get<CampaignView>(`presets/${id}/campaign`))
       return { ...view, mine: view.mine && withConditions(view.mine) }
     },
-    refetchInterval: 10_000,
   })
+
+export function useCampaign(id: string) {
+  return useQuery({ ...campaignQuery(id), refetchInterval: 10_000 })
 }
 
 export function useInvite(token: string) {
@@ -85,17 +87,22 @@ export function useLeave(kind: 'presets' | 'encounters', id: string) {
   })
 }
 
-export function usePlayerEncounter(id: string) {
-  return useQuery({
+export const playerEncounterQuery = (id: string) =>
+  queryOptions({
     queryKey: playerKeys.encounter(id),
     queryFn: async () => {
       const view = await orNotFound(api.get<PlayerEncounter>(`encounters/${id}/view`))
       return { ...view, creatures: view.creatures.map(withConditions), characters: view.characters.map(withConditions) }
     },
-    // Live pings usually arrive first; polling this often keeps players within a couple of
-    // seconds of the DM even when the socket drops. It pauses while the tab is hidden.
-    refetchInterval: 2_000,
   })
+
+/**
+ * Live pings bring changes the moment they happen; while they're connected this
+ * only checks now and then. Without them it polls every couple of seconds
+ * (paused while the tab is hidden), and unchanged polls come back as an empty 304.
+ */
+export function usePlayerEncounter(id: string, liveConnected = false) {
+  return useQuery({ ...playerEncounterQuery(id), refetchInterval: pollEvery(liveConnected) })
 }
 
 /** A player changes their own HP or conditions mid-fight. Optimistic, like the DM screen. */

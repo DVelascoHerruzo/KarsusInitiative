@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ChevronDown, Keyboard, LogOut, Palette, User } from 'lucide-react'
+import { ChevronDown, Keyboard, LogOut, Palette, ShieldCheck, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { ShortcutsDialog } from '@/features/combat/ShortcutsDialog'
@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn'
 import { THEMES, useTheme } from '@/lib/theme'
 import type { Mode } from '@/lib/types'
 import { Emblem } from './Emblem'
+import { LegalFooter } from './LegalFooter'
 
 interface LayoutProps {
   children: ReactNode
@@ -53,7 +54,10 @@ export default function Layout({ children, title, guest }: LayoutProps) {
         {children}
       </main>
 
-      <footer className="border-t border-dnd-border/20 py-3 text-center font-ui text-xs text-dnd-muted/40">⚔ Karsus Initiative Tracker ⚔</footer>
+      <footer className="border-t border-dnd-border/20 px-4 py-4 text-center font-ui text-[11px] leading-relaxed text-dnd-muted/70">
+        <p className="mb-1 text-xs text-dnd-muted/50">⚔ Karsus Initiative Tracker ⚔</p>
+        <LegalFooter />
+      </footer>
     </div>
   )
 }
@@ -204,6 +208,15 @@ function AccountMenu() {
             </div>
           </div>
           <div className="mt-1 border-t border-dnd-border/50 px-1 pt-1">
+            <Link
+              to="/account"
+              onClick={() => setOpen(false)}
+              title="Change your password, sign out other devices, download your data or delete your account"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-ui text-sm text-dnd-muted transition-colors hover:bg-dnd-surface/60 hover:text-dnd-parchment"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Account &amp; Security
+            </Link>
             <button
               type="button"
               onClick={() => {

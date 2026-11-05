@@ -281,7 +281,7 @@ html[data-theme='purple'] {
     font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
     background-color: var(--bg-black);
-    background-image: url('/bg-city.jpg');
+    background-image: url('/background.jpg');
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
@@ -422,9 +422,3 @@ html[data-theme='white'] .bg-adventure {
   );
 }
 
-/* The Ko-fi button stays off the screens the table watches. */
-html[data-display] [id^='kofi-widget-overlay'],
-html[data-display] .floatingchat-container-wrap,
-html[data-display] .floatingchat-container-wrap-mobi {
-  display: none !important;
-}
