@@ -94,6 +94,7 @@ function ModeSwitch() {
             type="button"
             role="radio"
             aria-checked={on}
+            title={m.mode === 'dm' ? 'Run encounters and campaigns. Karsus remembers which side you were on.' : 'See the campaigns and fights you’ve joined, and your characters. Karsus remembers which side you were on.'}
             onClick={() => {
               if (!on) setMode(m.mode)
               navigate('/')
@@ -141,6 +142,7 @@ function AccountMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label="Account menu"
+        title="Colour theme, keyboard shortcuts and signing out"
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 font-ui text-sm text-dnd-jade transition-colors hover:bg-dnd-surface/60"
       >
         <User className="h-3.5 w-3.5" />

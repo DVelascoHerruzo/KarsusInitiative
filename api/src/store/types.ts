@@ -1,4 +1,4 @@
-import type { Encounter, Mode, Preset, Role } from '@/lib/types'
+import type { Encounter, Folders, Mode, Preset, Role } from '@/lib/types'
 
 // ─── Tables: encounters and presets ──────────────────────────────────────────
 // One document per encounter or preset, with its creatures embedded, partitioned
@@ -84,7 +84,13 @@ export interface PresenceEntry {
   ttl: number
 }
 
-export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry
+/** A person's own encounter folders: one document per account. */
+export interface FoldersEntry extends Folders {
+  id: string
+  kind: 'folders'
+}
+
+export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry | FoldersEntry
 export type EntryOf<K extends Entry['kind']> = Extract<Entry, { kind: K }>
 
 /** Item ids can't contain / \ ? #, so free text is URI-encoded. */
@@ -97,6 +103,7 @@ export const entryId = {
   invite: (token: string) => `invite:${token}`,
   reset: (tokenHash: string) => `reset:${tokenHash}`,
   presence: (encounterId: string) => `presence:${encounterId}`,
+  folders: (userId: string) => `folders:${userId}`,
 }
 
 export interface Store {

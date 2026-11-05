@@ -5,8 +5,8 @@ export default function DemoPlayPage() {
   const encounter = useDemoEncounter()
   return (
     <>
-      <title>Visual view (demo) · Karsus</title>
-      <DisplayView encounter={toSharedEncounter(encounter)} label="Display Window · Demo" />
+      <title>Player view (demo) · Karsus</title>
+      <DisplayView encounter={toSharedEncounter(encounter)} label="Player View · Demo" />
     </>
   )
 }

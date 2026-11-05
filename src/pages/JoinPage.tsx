@@ -103,7 +103,7 @@ export default function JoinPage() {
                 {invite.dm_name} invited you to play in this {what}.{' '}
                 {invite.kind === 'campaign'
                   ? 'Your character is yours to keep up to date as it grows, and every fight the DM opens from this campaign appears on your side.'
-                  : 'You’ll follow the fight on the visual view and can update your own HP and conditions.'}
+                  : 'You’ll follow the fight on the player view and can update your own HP and conditions.'}
               </p>
             </div>
             <CharacterPicker characters={invite.characters} pending={accept.isPending} onClaim={(id) => tryJoin({ claim: id })} onCreate={() => setCreating(true)} />

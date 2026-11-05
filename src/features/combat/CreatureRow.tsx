@@ -143,7 +143,7 @@ export default function CreatureRow({
           dead && 'line-through',
         )}
         onClick={() => setNameDraft(c.name)}
-        title="Click to edit name"
+        title="Click to rename"
       >
         {c.name}
       </button>
@@ -163,7 +163,7 @@ export default function CreatureRow({
         aria-label={`Conditions for ${c.name}`}
         aria-expanded={statusOpen}
         className="inline-flex h-5 w-5 items-center justify-center rounded border border-dnd-border/40 text-dnd-muted transition-colors hover:border-dnd-border hover:text-dnd-parchment"
-        title="Add condition"
+        title="Add a condition like Prone or Poisoned. Pick “Timed or custom” for spells such as Bless."
       >
         <Plus className="h-3 w-3" />
       </button>
@@ -205,7 +205,7 @@ export default function CreatureRow({
       inputMode="numeric"
       className={smallInput}
       aria-label={`Initiative for ${c.name}`}
-      title="Initiative"
+      title="Initiative. Type to change it; the order updates."
       value={initDraft ?? String(c.initiative)}
       onFocus={(e) => {
         setInitDraft(String(c.initiative))
@@ -221,7 +221,7 @@ export default function CreatureRow({
       inputMode="numeric"
       className={smallInput}
       aria-label={`Armor class for ${c.name}`}
-      title="Armor Class"
+      title="Armor Class. Type to change it."
       placeholder="AC"
       value={acDraft ?? String(c.armor_class ?? '')}
       onFocus={(e) => {
@@ -239,6 +239,7 @@ export default function CreatureRow({
       <button
         type="button"
         onClick={onHp}
+        title="Damage, heal or give temporary HP. Shortcuts: D, H, T"
         aria-label={`${c.name}: ${c.current_hp} of ${c.max_hp} hit points. Change HP`}
         className="w-24 shrink-0 rounded px-1.5 py-1 text-left transition-colors hover:bg-dnd-surface/60"
       >
@@ -266,26 +267,26 @@ export default function CreatureRow({
         onClick={() => onSave({ hidden: !c.hidden })}
         className={cn(iconBtn, c.hidden && 'text-purple-300')}
         aria-label={c.hidden ? `Show ${c.name} to players` : `Hide ${c.name} from players`}
-        title={c.hidden ? 'Hidden from players — click to reveal' : 'Hide from players'}
+        title={c.hidden ? 'Hidden from players. Click to reveal it.' : 'Hide from players: it won’t appear on the player view, even on its turn.'}
       >
         {c.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
       </button>
       {upload && (
-        <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className={iconBtn} title="Upload token image" aria-label={`Upload token image for ${c.name}`}>
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className={iconBtn} title="Upload a portrait. It’s resized automatically." aria-label={`Upload token image for ${c.name}`}>
           <ImagePlus className="h-3.5 w-3.5" />
         </button>
       )}
-      <label className="flex shrink-0 cursor-pointer items-center gap-1 text-xs text-dnd-muted" title="Player Character">
+      <label className="flex shrink-0 cursor-pointer items-center gap-1 text-xs text-dnd-muted" title="Player character: players see its exact HP, not just how hurt it looks">
         <input type="checkbox" checked={c.is_player} onChange={(e) => onSave({ is_player: e.target.checked })} className="h-3 w-3 accent-(--color-heading)" />
         PC
       </label>
-      <button type="button" onClick={onDuplicate} className={iconBtn} title="Duplicate" aria-label={`Duplicate ${c.name}`}>
+      <button type="button" onClick={onDuplicate} className={iconBtn} title="Add a copy with the next number (Goblin 1 → Goblin 2). Monsters roll their own initiative." aria-label={`Duplicate ${c.name}`}>
         <Copy className="h-3.5 w-3.5" />
       </button>
-      <button type="button" onClick={onEdit} className={iconBtn} title="Edit everything" aria-label={`Edit ${c.name}`}>
+      <button type="button" onClick={onEdit} className={iconBtn} title="Edit everything: HP, notes, portrait, hidden… Shortcut: E" aria-label={`Edit ${c.name}`}>
         <Pencil className="h-3.5 w-3.5" />
       </button>
-      <button type="button" onClick={onDelete} className={cn(iconBtn, 'hover:text-dnd-red!')} title="Delete creature" aria-label={`Remove ${c.name}`}>
+      <button type="button" onClick={onDelete} className={cn(iconBtn, 'hover:text-dnd-red!')} title="Remove from the fight. Undo from the message that appears." aria-label={`Remove ${c.name}`}>
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </>

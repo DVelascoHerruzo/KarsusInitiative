@@ -80,7 +80,7 @@ export default function CampaignPage() {
           title={campaign.name}
           description={campaign.description}
           actions={
-            <button type="button" onClick={() => setLeaving(true)} className="dnd-button-ghost px-3 py-2 text-sm hover:text-dnd-red">
+            <button type="button" onClick={() => setLeaving(true)} className="dnd-button-ghost px-3 py-2 text-sm hover:text-dnd-red" title="Stop playing in this campaign. Your character stays for someone else to pick.">
               <LogOut className="h-4 w-4" /> Leave Campaign
             </button>
           }
@@ -94,10 +94,10 @@ export default function CampaignPage() {
                 onSlots={(slots) => mine.sheet && update.mutate({ cid: mine.id, patch: { sheet: { ...mine.sheet, ...slots } } })}
                 actions={
                   <>
-                    <button type="button" className="dnd-button-primary px-4 py-2 text-sm" onClick={() => setEditing(true)}>
+                    <button type="button" className="dnd-button-primary px-4 py-2 text-sm" onClick={() => setEditing(true)} title="Update your character as it grows: level, HP, scores, skills, spells and gear. Or import from D&D Beyond.">
                       <Pencil className="h-4 w-4" /> Edit Sheet
                     </button>
-                    <button type="button" className="dnd-button-secondary px-4 py-2 text-sm" onClick={() => setSwitching(true)}>
+                    <button type="button" className="dnd-button-secondary px-4 py-2 text-sm" onClick={() => setSwitching(true)} title="Play a different character. This one stays for someone else to pick.">
                       <Repeat className="h-4 w-4" /> Switch
                     </button>
                   </>

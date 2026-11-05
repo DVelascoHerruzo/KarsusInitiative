@@ -20,7 +20,7 @@ export default function PlayPage() {
       <MessageScreen
         icon={<DoorClosed className="h-12 w-12 text-dnd-muted" />}
         title="This table is closed"
-        body={isError ? 'We couldn’t reach the table. Check your connection and refresh.' : 'The link may be wrong, or your DM has turned off the visual view.'}
+        body={isError ? 'We couldn’t reach the table. Check your connection and refresh.' : 'The link may be wrong, or your DM has turned off the player view.'}
         actions={
           <Link to="/" className="dnd-button-primary">
             Go to Karsus

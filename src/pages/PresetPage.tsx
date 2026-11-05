@@ -41,7 +41,7 @@ export default function PresetPage() {
     return (
       <Layout>
         <div className="py-20 text-center">
-          <p className="font-body text-dnd-red">{error instanceof NotFoundError ? 'Preset not found.' : (error?.message ?? 'Something went wrong.')}</p>
+          <p className="font-body text-dnd-red">{error instanceof NotFoundError ? 'Campaign not found.' : (error?.message ?? 'Something went wrong.')}</p>
           <button type="button" onClick={() => navigate('/')} className="dnd-button-secondary mt-4">
             ‹ Back
           </button>
@@ -67,20 +67,21 @@ export default function PresetPage() {
       <div className="relative z-10 space-y-6">
         <PageHeader
           back={{ to: '/', label: 'Back' }}
-          eyebrow={preset.members.length ? 'Campaign' : 'Preset'}
+          eyebrow="Campaign"
           title={preset.name}
           description={preset.description}
           actions={
             <>
-              <button type="button" onClick={() => setEditing(true)} className="dnd-button-secondary px-4 py-2 text-sm">
-                <Pencil className="h-4 w-4" /> Edit Preset
+              <button type="button" onClick={() => setEditing(true)} className="dnd-button-secondary px-4 py-2 text-sm" title="Change the campaign’s name, description and backdrop">
+                <Pencil className="h-4 w-4" /> Edit Campaign
               </button>
-              <button type="button" onClick={() => m.update.mutate({ hidden: !preset.hidden })} className="dnd-button-secondary px-4 py-2 text-sm">
+              <button type="button" onClick={() => m.update.mutate({ hidden: !preset.hidden })} className="dnd-button-secondary px-4 py-2 text-sm" title="Hidden campaigns, and every encounter in them, are closed to players until you show them again">
                 {preset.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} {preset.hidden ? 'Show to Players' : 'Hide from Players'}
               </button>
               <button
                 type="button"
                 onClick={async () => navigate(`/encounters/${await launch.mutateAsync(id)}`)}
+                title="Start a new encounter with everyone here. Monsters roll initiative; the party keeps theirs."
                 disabled={launch.isPending || preset.creatures.length === 0}
                 className="dnd-button-primary px-4 py-2 text-sm"
               >
@@ -118,7 +119,7 @@ export default function PresetPage() {
               <h2 id="creatures" className="font-body text-lg tracking-widest text-dnd-parchment uppercase">
                 Creatures <span className="text-sm text-dnd-muted">({sorted.length})</span>
               </h2>
-              <button type="button" onClick={() => setFormTarget({ mode: 'add' })} className="dnd-button-secondary px-3 py-1.5 text-sm">
+              <button type="button" onClick={() => setFormTarget({ mode: 'add' })} className="dnd-button-secondary px-3 py-1.5 text-sm" title="Add a party member or monsters. Players you invite can also make their own characters.">
                 <Plus className="h-4 w-4" /> Add Creature
               </button>
             </div>
@@ -184,8 +185,8 @@ export default function PresetPage() {
       <EncounterFormDialog
         open={editing}
         onClose={() => setEditing(false)}
-        heading="Edit Preset"
-        nameLabel="Preset Name"
+        heading="Edit Campaign"
+        nameLabel="Campaign Name"
         submitLabel="Save Changes"
         initial={{ title: preset.name, description: preset.description, background_url: preset.background_url }}
         upload={uploadImage}
@@ -261,17 +262,17 @@ function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, 
             {c.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
           {c.is_player && (
-            <button type="button" onClick={onSheet} className={cn(btn, 'hover:text-dnd-jade')} aria-label={`Character sheet for ${c.name}`} title="Character sheet">
+            <button type="button" onClick={onSheet} className={cn(btn, 'hover:text-dnd-jade')} aria-label={`Character sheet for ${c.name}`} title="Open the full character sheet: abilities, skills, spell slots and inventory">
               <ScrollText className="h-3.5 w-3.5" />
             </button>
           )}
-          <button type="button" onClick={onDuplicate} className={cn(btn, 'hover:text-dnd-jade')} aria-label={`Duplicate ${c.name}`} title="Duplicate">
+          <button type="button" onClick={onDuplicate} className={cn(btn, 'hover:text-dnd-jade')} aria-label={`Duplicate ${c.name}`} title="Add a copy with the next number (Goblin 1 → Goblin 2)">
             <Copy className="h-3.5 w-3.5" />
           </button>
-          <button type="button" onClick={onEdit} className={cn(btn, 'hover:text-dnd-gold')} aria-label={`Edit ${c.name}`} title="Edit">
+          <button type="button" onClick={onEdit} className={cn(btn, 'hover:text-dnd-gold')} aria-label={`Edit ${c.name}`} title="Edit name, stats, notes and portrait">
             <Pencil className="h-3.5 w-3.5" />
           </button>
-          <button type="button" onClick={onDelete} className={cn(btn, 'hover:text-dnd-red')} aria-label={`Remove ${c.name}`} title="Delete">
+          <button type="button" onClick={onDelete} className={cn(btn, 'hover:text-dnd-red')} aria-label={`Remove ${c.name}`} title="Remove from the campaign. Undo from the message that appears.">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
