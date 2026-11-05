@@ -308,6 +308,19 @@ export type CharacterChoice = { claim: string } | { create: NewCreature }
 
 export type Mode = 'dm' | 'player'
 
+/** A person's own folder for encounters. DMs and players keep separate ones. */
+export interface Folder {
+  id: string
+  name: string
+  side: Mode
+}
+
+/** Someone's folders, and which folder each encounter is filed in (by encounter id). */
+export interface Folders {
+  folders: Folder[]
+  filed: Record<string, string>
+}
+
 /** The signed-in account, as the API reports it. */
 export interface User {
   id: string

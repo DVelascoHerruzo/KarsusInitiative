@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType } from 'react'
 import { Outlet, ScrollRestoration, createBrowserRouter } from 'react-router'
 import { Toaster } from 'sonner'
+import { Tooltips } from '@/components/ui/Tooltips'
 import { FullScreenLoader } from '@/components/ui/tokens'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -28,6 +29,7 @@ function RootLayout() {
         <Outlet />
       </Suspense>
       <ScrollRestoration />
+      <Tooltips />
       <Toaster
         theme="dark"
         position="bottom-right"

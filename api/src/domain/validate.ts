@@ -7,6 +7,7 @@ import type {
   Condition,
   CreaturePatch,
   EncounterPatch,
+  Folders,
   Mode,
   NewCreature,
   NewEncounter,
@@ -268,3 +269,28 @@ export function password(v: unknown): string {
 }
 
 export const username = (v: unknown): string => text(v, 'Username', 40, 1)
+
+// ─── Personal folders ────────────────────────────────────────────────────────
+
+const MAX_FOLDERS = 100
+const MAX_FILED = 2000
+
+/** The whole folder list, replaced in one go. Filings that point at a missing folder are dropped. */
+export function folders(body: Body): Folders {
+  if (!Array.isArray(body.folders)) return bad('Folders must be a list')
+  if (body.folders.length > MAX_FOLDERS) return bad(`You can have at most ${MAX_FOLDERS} folders`)
+  const list = body.folders.map((f) => {
+    const raw = object(f, 'Folder')
+    return { id: text(raw.id, 'Folder id', 64, 1), name: text(raw.name, 'Folder name', 60, 1), side: mode(raw.side) }
+  })
+  if (new Set(list.map((f) => f.id)).size !== list.length) return bad('Two folders share an id')
+  const ids = new Set(list.map((f) => f.id))
+  const filedIn = object(body.filed ?? {}, 'Filed')
+  const entries = Object.entries(filedIn)
+  if (entries.length > MAX_FILED) return bad('Too many filed encounters')
+  const filed: Record<string, string> = {}
+  for (const [encounterId, folderId] of entries) {
+    if (typeof folderId === 'string' && ids.has(folderId) && encounterId.length <= 64) filed[encounterId] = folderId
+  }
+  return { folders: list, filed }
+}

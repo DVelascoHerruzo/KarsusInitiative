@@ -8,7 +8,7 @@ import { services } from './services'
 for (const route of routes) {
   app.http(route.name, {
     route: route.route,
-    methods: Object.keys(route.methods) as ('GET' | 'POST' | 'PATCH' | 'DELETE')[],
+    methods: Object.keys(route.methods) as ('GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE')[],
     authLevel: 'anonymous',
     handler: (req) => dispatch(route, req, services()),
   })

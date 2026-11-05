@@ -6,10 +6,10 @@ import { toast } from 'sonner'
 import { CardGrid, CardSkeletons, EmptyCard, EncounterGroups, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
 import ConfirmDelete from '@/components/ui/ConfirmDelete'
 import Layout from '@/components/ui/Layout'
-import Modal from '@/components/ui/Modal'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
-import { FolderSelect } from '@/features/encounters/FolderSelect'
+import { MoveDialog, NewFolderButton } from '@/features/folders/FolderDialogs'
+import { useFolders } from '@/features/folders/queries'
 import { keys, useCreateEncounter, useDeleteEncounter, useEncounterList } from '@/features/encounters/queries'
 import { presetKeys, useCreatePreset, useDeletePreset, useLaunchPreset, usePresetList } from '@/features/presets/queries'
 import { api } from '@/lib/api'
@@ -37,13 +37,14 @@ export default function DashboardPage() {
   const [editing, setEditing] = useState<Editing | null>(null)
   const [deleting, setDeleting] = useState<Pending | null>(null)
   const [filing, setFiling] = useState<EncounterSummary | null>(null)
+  const folders = useFolders('dm')
 
   const rename = useMutation({
     mutationFn: ({ kind, id, values }: { kind: 'encounter' | 'preset'; id: string; values: NewEncounter }) =>
       kind === 'encounter' ? api.patch(`encounters/${id}`, values) : api.patch(`presets/${id}`, { name: values.title, description: values.description, background_url: values.background_url }),
     onSuccess: (_, { kind }) => {
       void qc.invalidateQueries({ queryKey: kind === 'encounter' ? keys.encounters : presetKeys.presets })
-      toast.success(kind === 'encounter' ? 'Encounter updated' : 'Preset updated')
+      toast.success(kind === 'encounter' ? 'Encounter updated' : 'Campaign updated')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -56,15 +57,15 @@ export default function DashboardPage() {
   const tools = (onEdit: () => void, pending: Pending, ownerId: string, onFile?: () => void) => (
     <>
       {onFile && (
-        <button type="button" onClick={onFile} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Move ${pending.name} to a folder`} title="Move to folder">
+        <button type="button" onClick={onFile} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Move ${pending.name} to a folder`} title="Move into one of your folders, or choose which campaign it belongs to">
           <FolderInput className="h-3.5 w-3.5" />
         </button>
       )}
-      <button type="button" onClick={onEdit} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Edit ${pending.name}`} title="Edit">
+      <button type="button" onClick={onEdit} className={`${toolBtn} hover:text-dnd-gold`} aria-label={`Edit ${pending.name}`} title="Rename it or change its description and backdrop">
         <Pencil className="h-3.5 w-3.5" />
       </button>
       {ownerId === user?.id && (
-        <button type="button" onClick={() => setDeleting(pending)} className={`${toolBtn} hover:text-dnd-red`} aria-label={`Delete ${pending.name}`} title="Delete">
+        <button type="button" onClick={() => setDeleting(pending)} className={`${toolBtn} hover:text-dnd-red`} aria-label={`Delete ${pending.name}`} title="Delete it for good (asks first)">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       )}
@@ -98,9 +99,17 @@ export default function DashboardPage() {
             title="Encounters"
             count={encounters.data?.length}
             action={
-              <button type="button" onClick={() => setEditing({ kind: 'encounter' })} className="dnd-button-primary px-4 py-2">
-                <Plus className="h-4 w-4" /> New Encounter
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <NewFolderButton controls={folders} />
+                <button
+                  type="button"
+                  onClick={() => setEditing({ kind: 'encounter' })}
+                  className="dnd-button-primary px-4 py-2"
+                  title="Start a fight from scratch. To bring your party along, launch a campaign instead."
+                >
+                  <Plus className="h-4 w-4" /> New Encounter
+                </button>
+              </div>
             }
           />
           {encounters.isPending ? (
@@ -119,7 +128,16 @@ export default function DashboardPage() {
             />
           ) : (
             <EncounterGroups
-              groups={groupEncounters(encounters.data, (presets.data ?? []).map((p) => ({ id: p.id, name: p.name })))}
+              groups={groupEncounters(encounters.data, {
+                campaigns: (presets.data ?? []).map((p) => ({ id: p.id, name: p.name })),
+                folders: folders.folders,
+                filed: folders.filed,
+              })}
+              onRenameFolder={folders.rename}
+              onDeleteFolder={(id) => {
+                const before = folders.remove(id)
+                toast('Folder deleted', { description: 'Its encounters are back in their usual place.', action: { label: 'Undo', onClick: () => folders.restore(before) } })
+              }}
               render={(e) => (
                 <SceneCard
                   key={e.id}
@@ -138,33 +156,33 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* ── Presets ─────────────────────────────────────────────── */}
-        <section aria-label="Presets">
+        {/* ── Campaigns ───────────────────────────────────────────── */}
+        <section aria-label="Campaigns">
           <SectionHeading
             icon={<BookOpen className="h-5 w-5 text-dnd-gold" />}
-            title="Presets"
+            title="Campaigns"
             count={presets.data?.length}
             action={
-              <button type="button" onClick={() => setEditing({ kind: 'preset' })} className="dnd-button-secondary px-4 py-2">
-                <Plus className="h-4 w-4" /> New Preset
+              <button type="button" onClick={() => setEditing({ kind: 'preset' })} className="dnd-button-secondary px-4 py-2" title="Save your party and the monsters they’ll face. Invite players to it, then launch fights from it.">
+                <Plus className="h-4 w-4" /> New Campaign
               </button>
             }
           />
           <p className="-mt-2 mb-4 max-w-3xl font-ui text-sm text-dnd-muted italic">
-            Your party, a recurring villain, a random-encounter table. Invite players to a preset and it becomes a campaign: they pick their characters, and
-            every encounter you launch from it shows up for them.
+            Your party and the monsters they’ll meet. Invite players to a campaign and they pick their characters; every encounter you launch from it
+            shows up for them.
           </p>
           {presets.isPending ? (
             <CardSkeletons />
           ) : presets.error ? (
-            <EmptyCard icon={<BookOpen className="h-10 w-10" />} text={`Couldn’t load presets: ${presets.error.message}`} />
+            <EmptyCard icon={<BookOpen className="h-10 w-10" />} text={`Couldn’t load campaigns: ${presets.error.message}`} />
           ) : presets.data.length === 0 ? (
             <EmptyCard
               icon={<BookOpen className="h-10 w-10" />}
-              text="No presets yet. Save your party once and drop them into every fight!"
+              text="No campaigns yet. Save your party once and drop them into every fight!"
               action={
                 <button type="button" onClick={() => setEditing({ kind: 'preset' })} className="dnd-button-secondary">
-                  <Plus className="h-4 w-4" /> Create Preset
+                  <Plus className="h-4 w-4" /> Create Campaign
                 </button>
               }
             />
@@ -188,6 +206,7 @@ export default function DashboardPage() {
                       disabled={launch.isPending || p.creatures.length === 0}
                       onClick={async () => navigate(`/encounters/${await launch.mutateAsync(p.id)}`)}
                       className="flex items-center gap-1.5 rounded-lg border border-dnd-gold/40 px-3 py-1.5 font-body text-xs tracking-widest text-dnd-gold transition-colors hover:bg-dnd-gold/10 disabled:opacity-40"
+                      title="Start a new encounter with everyone in this campaign. Monsters roll initiative; the party keeps theirs."
                     >
                       <Play className="h-3 w-3" /> Launch
                     </button>
@@ -202,21 +221,20 @@ export default function DashboardPage() {
       <EncounterFormDialog
         open={editing !== null}
         onClose={() => setEditing(null)}
-        heading={`${editing?.item ? 'Edit' : 'New'} ${editing?.kind === 'preset' ? 'Preset' : 'Encounter'}`}
-        nameLabel={editing?.kind === 'preset' ? 'Preset Name' : 'Title'}
+        heading={`${editing?.item ? 'Edit' : 'New'} ${editing?.kind === 'preset' ? 'Campaign' : 'Encounter'}`}
+        nameLabel={editing?.kind === 'preset' ? 'Campaign Name' : 'Title'}
         placeholder={editing?.kind === 'preset' ? 'Goblin Ambush' : 'The Final Showdown'}
-        submitLabel={editing?.item ? 'Save Changes' : editing?.kind === 'preset' ? 'Create Preset' : 'Create Encounter'}
+        submitLabel={editing?.item ? 'Save Changes' : editing?.kind === 'preset' ? 'Create Campaign' : 'Create Encounter'}
         initial={editingInitial}
         upload={uploadImage}
         onSubmit={submit}
       />
-      <Modal open={filing !== null} onClose={() => setFiling(null)} title="Move to Folder" size="sm">
-        {filing && (
-          <div className="p-6">
-            <FolderSelect encounterId={filing.id} ownerId={filing.owner_id} value={encounters.data?.find((x) => x.id === filing.id)?.campaign_id ?? null} />
-          </div>
-        )}
-      </Modal>
+      <MoveDialog
+        encounter={filing && (encounters.data?.find((x) => x.id === filing.id) ?? filing)}
+        onClose={() => setFiling(null)}
+        controls={folders}
+        campaign
+      />
       <ConfirmDelete
         open={deleting !== null}
         onClose={() => setDeleting(null)}
@@ -226,7 +244,7 @@ export default function DashboardPage() {
           if (!deleting) return
           try {
             await (deleting.kind === 'encounter' ? deleteEncounter : deletePreset).mutateAsync(deleting.id)
-            toast.success(deleting.kind === 'encounter' ? 'Encounter deleted' : 'Preset deleted')
+            toast.success(deleting.kind === 'encounter' ? 'Encounter deleted' : 'Campaign deleted')
           } catch {
             // The mutation already reported the error.
           }
