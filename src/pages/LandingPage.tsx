@@ -6,7 +6,7 @@ import { useTealTheme } from '@/lib/theme'
 const FEATURES = [
   { icon: Sword, title: 'Live Turn Tracker', desc: 'Control initiative from your phone, watch it update on the big screen instantly.' },
   { icon: Monitor, title: 'Visual Display Mode', desc: 'Project a cinematic battle view with creature portraits and HP bars.' },
-  { icon: ScrollText, title: 'Encounter Presets', desc: 'Save monster groups and your party, and drop them into any encounter in seconds.' },
+  { icon: ScrollText, title: 'Campaigns', desc: 'Save your party and monster groups once, and launch them into any encounter in seconds.' },
   { icon: Users, title: 'Campaigns & Players', desc: 'Invite your players with a link. They keep their own sheets, or import them from D&D Beyond.' },
 ]
 

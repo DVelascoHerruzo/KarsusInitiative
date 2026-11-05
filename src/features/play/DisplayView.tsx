@@ -89,7 +89,7 @@ interface DisplayViewProps {
  * initiative order on the right, round and turn across the top. Monsters show
  * how hurt they look, never their numbers.
  */
-export function DisplayView({ encounter: e, mine = [], characters = [], onHp, onConditions, onSlots, back, label = 'Display Window · Live sync' }: DisplayViewProps) {
+export function DisplayView({ encounter: e, mine = [], characters = [], onHp, onConditions, onSlots, back, label = 'Player View · Live sync' }: DisplayViewProps) {
   const [fullscreen, toggleFullscreen] = useFullscreen()
   useWakeLock()
   useDisplayScreen()
@@ -171,7 +171,7 @@ export function DisplayView({ encounter: e, mine = [], characters = [], onHp, on
             type="button"
             onClick={toggleFullscreen}
             aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
-            title={fullscreen ? 'Exit full screen' : 'Full screen'}
+            title={fullscreen ? 'Leave full screen' : 'Fill the whole screen, for a TV or projector. The screen also stays awake.'}
             className="rounded-lg p-2 text-dnd-muted transition-colors hover:bg-dnd-surface/60 hover:text-dnd-parchment"
           >
             {fullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
@@ -441,6 +441,7 @@ function InitiativeRow({ creature: c, rank, isActive, isViewed, onLook, own, onH
             }}
             aria-pressed={isViewed || isActive}
             aria-label={`Look at ${c.name}`}
+            title="Look at this creature on the big card, as if it were its turn. Arrow keys move between creatures; Escape goes back."
             className={cn('truncate text-left font-body text-sm', isActive ? 'font-semibold text-dnd-gold' : isViewed ? 'text-dnd-amber' : 'text-dnd-parchment')}
           >
             {c.name}

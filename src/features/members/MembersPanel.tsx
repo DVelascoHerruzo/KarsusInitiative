@@ -36,7 +36,7 @@ export function MembersPanel({ kind, base, queryKey, members, invites, creatures
         hint={
           kind === 'campaign'
             ? 'Players pick a character or make their own, and see every encounter you launch from this campaign unless you hide it.'
-            : 'Players pick a character or make their own, and follow the fight on the visual view.'
+            : 'Players pick a character or make their own, and follow the fight on the player view.'
         }
         onReset={() => m.resetInvite.mutate('player')}
         onClose={() => m.closeInvite.mutate('player')}
@@ -171,12 +171,12 @@ function InviteRow({ role, token, hint, onReset, onClose, pending }: InviteRowPr
             onFocus={(e) => e.target.select()}
             className="dnd-input min-w-0 flex-1 py-2 text-xs text-dnd-muted"
           />
-          <button type="button" className="dnd-button-secondary px-3 py-2" onClick={() => copyText(url, 'Invite link')}>
+          <button type="button" className="dnd-button-secondary px-3 py-2" onClick={() => copyText(url, 'Invite link')} title="Copy the link, then send it any way you like: chat, email, Discord…">
             <Copy className="h-4 w-4" /> Copy
           </button>
         </div>
       ) : (
-        <button type="button" className="dnd-button-secondary mt-3 px-4 py-1.5 text-sm" disabled={pending} onClick={onReset}>
+        <button type="button" className="dnd-button-secondary mt-3 px-4 py-1.5 text-sm" disabled={pending} onClick={onReset} title="Make an invite link. Whoever opens it while signed in joins with this role.">
           <Link2 className="h-4 w-4" /> Make a link
         </button>
       )}

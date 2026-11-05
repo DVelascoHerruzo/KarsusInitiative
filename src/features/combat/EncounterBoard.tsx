@@ -152,28 +152,28 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={rollMonsters} disabled={!ordered.length} className="dnd-button-ghost px-3" title="Roll initiative for every monster (I)">
+          <button type="button" onClick={rollMonsters} disabled={!ordered.length} className="dnd-button-ghost px-3" title="Roll d20 + initiative bonus for every monster at once. Players keep theirs. Shortcut: I">
             <Dices className="h-4 w-4" /> <span className="max-sm:sr-only">Roll monsters</span>
           </button>
           {started && (
-            <button type="button" onClick={() => setConfirmReset(true)} className="dnd-button-ghost px-3" title="Reset combat">
+            <button type="button" onClick={() => setConfirmReset(true)} className="dnd-button-ghost px-3" title="Back to round 1 with no one acting. HP and conditions are kept.">
               <RotateCcw className="h-4 w-4" /> <span className="sr-only">Reset combat</span>
             </button>
           )}
-          <button type="button" onClick={() => setShowShortcuts(true)} className="dnd-button-ghost px-3 max-sm:hidden" title="Keyboard shortcuts (?)">
+          <button type="button" onClick={() => setShowShortcuts(true)} className="dnd-button-ghost px-3 max-sm:hidden" title="Every keyboard shortcut for running combat. Shortcut: ?">
             <Keyboard className="h-4 w-4" /> <span className="sr-only">Keyboard shortcuts</span>
           </button>
           {started ? (
             <>
-              <button type="button" onClick={() => step(-1)} aria-keyshortcuts="Shift+Space ArrowLeft" className="dnd-button-secondary px-4 py-2">
+              <button type="button" onClick={() => step(-1)} aria-keyshortcuts="Shift+Space ArrowLeft" className="dnd-button-secondary px-4 py-2" title="Go back one turn, to fix a mistake. Shortcut: Shift+Space or ←">
                 <ChevronLeft className="h-4 w-4" /> Prev Turn
               </button>
-              <button type="button" onClick={() => step(1)} aria-keyshortcuts="Space ArrowRight" className="dnd-button-primary px-4 py-2">
+              <button type="button" onClick={() => step(1)} aria-keyshortcuts="Space ArrowRight" className="dnd-button-primary px-4 py-2" title="End this turn and pass to the next creature. Skips the dead and counts down timed conditions. Shortcut: Space or →">
                 Next Turn <ChevronRight className="h-4 w-4" />
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => step(1)} disabled={!ordered.length} aria-keyshortcuts="Space" className="dnd-button-primary px-4 py-2">
+            <button type="button" onClick={() => step(1)} disabled={!ordered.length} aria-keyshortcuts="Space" className="dnd-button-primary px-4 py-2" title="Begin round 1 with the highest initiative. Monsters appear on the player view from now on. Shortcut: Space">
               <Swords className="h-4 w-4" /> Start Combat
             </button>
           )}
@@ -187,7 +187,7 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
             <h2 id="creatures-heading" className="font-body text-lg tracking-widest text-dnd-parchment uppercase">
               Creatures <span className="text-sm text-dnd-muted">({ordered.length})</span>
             </h2>
-            <button type="button" onClick={() => setFormTarget({ mode: 'add' })} aria-keyshortcuts="A" className="dnd-button-secondary px-3 py-1.5 text-sm">
+            <button type="button" onClick={() => setFormTarget({ mode: 'add' })} aria-keyshortcuts="A" className="dnd-button-secondary px-3 py-1.5 text-sm" title="Add one creature or a whole group. Paste a stat block to fill it in. Shortcut: A">
               <Plus className="h-4 w-4" /> Add Creature
             </button>
           </div>

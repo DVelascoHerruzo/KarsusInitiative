@@ -7,7 +7,7 @@ import Layout, { PageHeader } from '@/components/ui/Layout'
 import Modal from '@/components/ui/Modal'
 import { EncounterBoard, type BoardActions } from '@/features/combat/EncounterBoard'
 import { EncounterFormDialog } from '@/features/encounters/EncounterFormDialog'
-import { FolderSelect } from '@/features/encounters/FolderSelect'
+import { CampaignSelect } from '@/features/encounters/CampaignSelect'
 import { NotFoundError, keys, useDmPresence, useEncounter, useEncounterMutations, useEncounterPings } from '@/features/encounters/queries'
 import { ShareDialog, openPlayerWindow } from '@/features/encounters/ShareDialog'
 import { MembersPanel } from '@/features/members/MembersPanel'
@@ -82,7 +82,7 @@ export default function EncounterPage() {
   function openVisualView() {
     if (!encounter!.share_enabled) {
       m.updateEncounter.mutate({ share_enabled: true })
-      toast('Visual view link turned on', { description: 'Anyone with the link can now watch this encounter.' })
+      toast('Player view link turned on', { description: 'Anyone with the link can now watch this encounter.' })
     }
     openPlayerWindow(playUrl)
   }
@@ -105,19 +105,19 @@ export default function EncounterPage() {
           description={encounter.description}
           actions={
             <>
-              <button type="button" onClick={() => setEditing(true)} className="dnd-button-secondary px-4 py-2 text-sm">
+              <button type="button" onClick={() => setEditing(true)} className="dnd-button-secondary px-4 py-2 text-sm" title="Change the encounter’s name, scene description and backdrop">
                 <Pencil className="h-4 w-4" /> Edit
               </button>
-              <button type="button" onClick={() => setInviting(true)} className="dnd-button-secondary px-4 py-2 text-sm">
+              <button type="button" onClick={() => setInviting(true)} className="dnd-button-secondary px-4 py-2 text-sm" title="Invite players or a co-DM, choose its campaign, or hide it from players">
                 {encounter.hidden ? <EyeOff className="h-4 w-4" /> : <Users className="h-4 w-4" />} Players
               </button>
-              <button type="button" onClick={() => setSharing(true)} className="dnd-button-secondary px-4 py-2 text-sm" title="Share the visual view">
+              <button type="button" onClick={() => setSharing(true)} className="dnd-button-secondary px-4 py-2 text-sm" title="Share the player view: a live, read-only link for the table screen or everyone's phones">
                 <Share2 className="h-4 w-4" />
                 <span className="sr-only">Share</span>
                 {encounter.share_enabled && <span className="h-1.5 w-1.5 rounded-full bg-dnd-jade" aria-label="(on)" />}
               </button>
-              <button type="button" onClick={openVisualView} disabled={encounter.creatures.length === 0} className="dnd-button-primary px-4 py-2 text-sm">
-                <ExternalLink className="h-4 w-4" /> Visual View
+              <button type="button" onClick={openVisualView} disabled={encounter.creatures.length === 0} className="dnd-button-primary px-4 py-2 text-sm" title="Open what your players see in a new window: put it on a TV or projector">
+                <ExternalLink className="h-4 w-4" /> Player View
               </button>
             </>
           }
@@ -148,7 +148,7 @@ export default function EncounterPage() {
         title="Players"
         description={
           encounter.campaign_id
-            ? 'Everyone in the campaign of its folder can already see it. Invite anyone else here.'
+            ? 'Everyone in its campaign can already see it. Invite anyone else here.'
             : 'Invite players to follow the fight with their own character, or a co-DM to run it with you.'
         }
         size="lg"
@@ -157,11 +157,11 @@ export default function EncounterPage() {
           <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-purple-500/40 bg-dnd-dark/60 px-4 py-3">
             <span>
               <span className="block font-body text-sm text-dnd-parchment">Hidden from players</span>
-              <span className="block font-ui text-xs text-dnd-muted italic">Players don’t see this encounter at all until you show it. The visual view link still works.</span>
+              <span className="block font-ui text-xs text-dnd-muted italic">Players don’t see this encounter at all until you show it. The player view link still works.</span>
             </span>
             <input type="checkbox" checked={encounter.hidden} onChange={(e) => m.updateEncounter.mutate({ hidden: e.target.checked })} className="h-5 w-5 accent-[var(--theme-accent)]" />
           </label>
-          <FolderSelect encounterId={encounter.id} ownerId={encounter.owner_id} value={encounter.campaign_id} className="block" />
+          <CampaignSelect encounterId={encounter.id} ownerId={encounter.owner_id} value={encounter.campaign_id} className="block" />
           <MembersPanel
             kind="encounter"
             base={`encounters/${id}`}

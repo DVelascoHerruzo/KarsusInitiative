@@ -28,7 +28,7 @@ export function copyText(text: string, what = 'Link') {
 export function ShareDialog({ open, onClose, url, enabled, onToggle, onOpenWindow }: ShareDialogProps) {
   const live = enabled !== false
   return (
-    <Modal open={open} onClose={onClose} title="Visual View" description="A live, read-only screen for the table. Anyone with the link can watch." size="lg">
+    <Modal open={open} onClose={onClose} title="Player View" description="A live, read-only screen for the table. Anyone with the link can watch." size="lg">
       <div className="space-y-5 p-6">
         {enabled !== null && onToggle && (
           <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-dnd-jade/40 bg-dnd-dark/60 px-4 py-3">
@@ -50,11 +50,11 @@ export function ShareDialog({ open, onClose, url, enabled, onToggle, onOpenWindo
                 <p className="font-ui text-sm text-dnd-muted">Players scan this, or open the link on the table screen.</p>
                 <div className="flex gap-2">
                   <input readOnly value={url} aria-label="Display link" onFocus={(e) => e.target.select()} className="dnd-input min-w-0 flex-1 py-2 text-xs text-dnd-muted" />
-                  <button type="button" className="dnd-button-secondary px-3 py-2" onClick={() => copyText(url)}>
+                  <button type="button" className="dnd-button-secondary px-3 py-2" onClick={() => copyText(url)} title="Copy the read-only link. No account needed to watch.">
                     <Copy className="h-4 w-4" /> Copy
                   </button>
                 </div>
-                <button type="button" className="dnd-button-primary w-full" onClick={onOpenWindow}>
+                <button type="button" className="dnd-button-primary w-full" onClick={onOpenWindow} title="Open the player view in its own window, ready to drag onto a TV or projector">
                   <ExternalLink className="h-4 w-4" /> Open in a new window
                 </button>
               </div>
@@ -66,7 +66,7 @@ export function ShareDialog({ open, onClose, url, enabled, onToggle, onOpenWindo
           </>
         ) : (
           <p className="flex items-center gap-2 font-ui text-sm text-dnd-muted italic">
-            <EyeOff className="h-4 w-4" /> The visual view is closed. Turn the link on to share it.
+            <EyeOff className="h-4 w-4" /> The player view is closed. Turn the link on to share it.
           </p>
         )}
       </div>

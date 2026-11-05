@@ -70,7 +70,7 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
           aria-describedby={error ? 'dice-error' : undefined}
           className="dnd-input min-w-0 flex-1 py-2"
         />
-        <button type="submit" className="dnd-button-secondary px-4 py-2" disabled={!notation.trim()}>
+        <button type="submit" className="dnd-button-secondary px-4 py-2" disabled={!notation.trim()} title="Roll any dice: 2d6+3, 4d6kh3 (keep highest 3), 2d20kl1 (disadvantage)…">
           Roll
         </button>
       </form>
@@ -86,6 +86,7 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
             key={s}
             type="button"
             onClick={() => quick(s)}
+            title={s === 20 ? 'Roll a d20, with advantage or disadvantage if chosen below' : `Roll one d${s}`}
             className={cn(
               'h-9 rounded-md border border-dnd-border/60 bg-dnd-dark/60 font-body text-xs transition-colors hover:border-dnd-jade hover:text-dnd-jade',
               s === 20 && mode !== 'normal' ? 'text-dnd-gold' : 'text-dnd-muted',
@@ -104,6 +105,7 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
             role="radio"
             aria-checked={mode === m}
             onClick={() => setMode(m)}
+            title={m === 'normal' ? 'The d20 button rolls once' : m === 'advantage' ? 'The d20 button rolls two and keeps the higher' : 'The d20 button rolls two and keeps the lower'}
             className={cn(
               'h-8 rounded-md font-body text-[11px] tracking-wider capitalize transition-colors',
               mode === m ? 'bg-dnd-teal text-white' : 'text-dnd-muted hover:text-dnd-parchment',

@@ -32,7 +32,7 @@ export default function DemoPage() {
                 <Share2 className="h-4 w-4" /> Share
               </button>
               <button type="button" onClick={() => openPlayerWindow(playUrl)} className="dnd-button-primary px-4 py-2 text-sm">
-                <ExternalLink className="h-4 w-4" /> Visual View
+                <ExternalLink className="h-4 w-4" /> Player View
               </button>
             </>
           }
@@ -44,7 +44,7 @@ export default function DemoPage() {
           <div>
             <h2 className="font-display text-3xl text-dnd-gold">Ready for your own table?</h2>
             <p className="mt-2 max-w-xl font-ui text-dnd-muted italic">
-              A free account saves encounters and presets, adds portraits and backdrops, invites your players to campaigns, and gives every fight a shareable visual
+              A free account saves encounters and campaigns, adds portraits and backdrops, invites your players to campaigns, and gives every fight a shareable visual
               view.
             </p>
           </div>

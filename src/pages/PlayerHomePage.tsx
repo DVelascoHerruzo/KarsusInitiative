@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { Link2, Scroll, Swords } from 'lucide-react'
+import { FolderInput, Link2, Scroll, Swords } from 'lucide-react'
 import { toast } from 'sonner'
 import { CardGrid, CardSkeletons, EmptyCard, EncounterGroups, Hero, SceneCard, SectionHeading } from '@/components/ui/Cards'
 import Layout from '@/components/ui/Layout'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { MoveDialog, NewFolderButton } from '@/features/folders/FolderDialogs'
+import { useFolders } from '@/features/folders/queries'
 import { usePlayerHome } from '@/features/player/queries'
+import type { PlayerEncounterSummary } from '@/lib/types'
 import { groupEncounters } from '@/lib/folders'
 
 /** The token from an invite link, or from the bare token pasted on its own. */
@@ -18,6 +21,8 @@ export default function PlayerHomePage() {
   const navigate = useNavigate()
   const home = usePlayerHome()
   const [link, setLink] = useState('')
+  const [filing, setFiling] = useState<PlayerEncounterSummary | null>(null)
+  const folders = useFolders('player')
 
   function openInvite(e: FormEvent) {
     e.preventDefault()
@@ -46,7 +51,12 @@ export default function PlayerHomePage() {
             placeholder="Paste the invite link your DM sent you"
             onChange={(e) => setLink(e.target.value)}
           />
-          <button type="submit" className="dnd-button-primary px-5 py-2" disabled={!link.trim()}>
+          <button
+            type="submit"
+            className="dnd-button-primary px-5 py-2"
+            disabled={!link.trim()}
+            title="Open the invite to see the campaign or fight, pick your character and join"
+          >
             Join
           </button>
         </form>
@@ -80,7 +90,12 @@ export default function PlayerHomePage() {
         </section>
 
         <section aria-label="Encounters">
-          <SectionHeading icon={<Swords className="h-5 w-5 text-dnd-crimson" />} title="Encounters" count={encounters?.length} />
+          <SectionHeading
+            icon={<Swords className="h-5 w-5 text-dnd-crimson" />}
+            title="Encounters"
+            count={encounters?.length}
+            action={<NewFolderButton controls={folders} />}
+          />
           {home.isPending ? (
             <CardSkeletons />
           ) : encounters && encounters.length === 0 ? (
@@ -90,8 +105,17 @@ export default function PlayerHomePage() {
             />
           ) : (
             <EncounterGroups
-              groups={groupEncounters(encounters ?? [], (campaigns ?? []).map((c) => ({ id: c.id, name: c.name })))}
+              groups={groupEncounters(encounters ?? [], {
+                campaigns: (campaigns ?? []).map((c) => ({ id: c.id, name: c.name })),
+                folders: folders.folders,
+                filed: folders.filed,
+              })}
               looseLabel="Invited directly"
+              onRenameFolder={folders.rename}
+              onDeleteFolder={(id) => {
+                const before = folders.remove(id)
+                toast('Folder deleted', { description: 'Its encounters are back in their usual place.', action: { label: 'Undo', onClick: () => folders.restore(before) } })
+              }}
               render={(e, folder) => (
                 <SceneCard
                   key={e.id}
@@ -103,11 +127,23 @@ export default function PlayerHomePage() {
                   live={e.started}
                   tags={[e.live && 'Live', !folder && e.campaign_name, e.character_name && `as ${e.character_name}`].filter((t): t is string => Boolean(t))}
                   creatures={[]}
+                  tools={
+                    <button
+                      type="button"
+                      onClick={() => setFiling(e)}
+                      aria-label={`Move ${e.title} to a folder`}
+                      title="Move to one of your folders. Only you see your folders."
+                      className="rounded bg-dnd-black/70 p-1.5 text-dnd-muted backdrop-blur transition-colors hover:text-dnd-gold"
+                    >
+                      <FolderInput className="h-3.5 w-3.5" />
+                    </button>
+                  }
                 />
               )}
             />
           )}
         </section>
+        <MoveDialog encounter={filing} onClose={() => setFiling(null)} controls={folders} />
       </div>
     </Layout>
   )

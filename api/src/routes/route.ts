@@ -3,7 +3,7 @@ import { HttpError, type ApiRequest, type ApiResponse } from '../http'
 import type { Services } from '../services'
 import { entryId, type DocOf, type Kind, type PresetDoc, type TableDoc } from '../store/types'
 
-export type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export type Handler = (req: ApiRequest, s: Services) => Promise<ApiResponse>
 
 /** One Azure Function per route template; the method picks the handler. */

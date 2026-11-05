@@ -386,3 +386,22 @@ describe('folders and live encounters', () => {
     expect(await live()).toEqual([false, false])
   })
 })
+
+describe('personal folders', () => {
+  it('keeps each person’s folders to themselves and drops filings for missing folders', async () => {
+    const app = testApp()
+    const { api: dm } = await signedUp(app, 'dm@example.com', 'Morgan')
+    const { api: other } = await signedUp(app, 'other@example.com', 'Other')
+    expect((await dm('GET', '/api/folders')).body).toEqual({ folders: [], filed: {} })
+
+    const saved = await dm('PUT', '/api/folders', {
+      body: { folders: [{ id: 'f1', name: 'Session 12', side: 'dm' }], filed: { enc1: 'f1', enc2: 'gone' } },
+    })
+    expect(saved.body).toEqual({ folders: [{ id: 'f1', name: 'Session 12', side: 'dm' }], filed: { enc1: 'f1' } })
+    expect((await dm('GET', '/api/folders')).body.folders).toHaveLength(1)
+    expect((await other('GET', '/api/folders')).body.folders).toEqual([])
+
+    expect((await dm('PUT', '/api/folders', { body: { folders: [{ id: 'x', name: '', side: 'dm' }] } })).status).toBe(400)
+    expect((await dm('PUT', '/api/folders', { body: { folders: [{ id: 'x', name: 'Ok', side: 'gm' }] } })).status).toBe(400)
+  })
+})
