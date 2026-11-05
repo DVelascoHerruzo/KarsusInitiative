@@ -10,8 +10,8 @@ import { DisplayView } from '@/features/play/DisplayView'
 export default function PlayPage() {
   const { token = '' } = useParams()
   const qc = useQueryClient()
-  const { data, isPending, isError } = useSharedEncounter(token)
-  useEncounterPings(token, () => qc.invalidateQueries({ queryKey: keys.shared(token) }))
+  const live = useEncounterPings(token, () => qc.invalidateQueries({ queryKey: keys.shared(token) }))
+  const { data, isPending, isError } = useSharedEncounter(token, live)
 
   if (isPending) return <FullScreenLoader label="Entering the battlefield…" />
 

@@ -43,4 +43,6 @@ export const api = {
   patch: <T = undefined>(path: string, body: unknown) => request<T>('PATCH', path, body),
   put: <T = undefined>(path: string, body: unknown) => request<T>('PUT', path, body),
   delete: (path: string) => request<undefined>('DELETE', path),
+  /** Any method, with a body: a DELETE that needs a confirmation, say. */
+  request: <T = undefined>(method: string, path: string, body?: unknown) => request<T>(method, path, body),
 }

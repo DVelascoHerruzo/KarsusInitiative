@@ -3,6 +3,7 @@ import { currentUser, requireUser } from '../auth/session'
 import * as table from '../domain/tables'
 import * as v from '../domain/validate'
 import { HttpError, json, noContent, readJson } from '../http'
+import { rateLimit } from '../rate'
 import type { Services } from '../services'
 import { entryId, type InviteEntry, type Kind, type TableDoc } from '../store/types'
 import { usernames } from './collections'
@@ -124,6 +125,7 @@ export const memberRoutes: Route[] = [
       /** Joins the table. A player can pick their character in the same step. */
       async POST(req, s) {
         const user = await requireUser(s, req)
+        await rateLimit(s, 'invite', user.user_id)
         const { entry } = await inviteFor(s, param(req, 'token'))
         const body = await readJson(req)
         const choice = body.claim !== undefined || body.create !== undefined ? v.characterChoice(body) : null

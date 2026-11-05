@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { requireUser } from '../auth/session'
 import { HttpError, json, queryParam, type ApiRequest } from '../http'
+import { rateLimit } from '../rate'
 import type { Route } from './route'
 
 const IMAGE_KINDS = new Set(['portrait', 'background'])
@@ -29,6 +30,7 @@ export const imageRoutes: Route[] = [
       /** The browser has already resized and re-encoded the image as WebP; this checks and stores it. */
       async POST(req, s) {
         const user = await requireUser(s, req)
+        await rateLimit(s, 'upload', user.user_id)
         const kind = queryParam(req, 'kind') ?? ''
         if (!IMAGE_KINDS.has(kind)) throw new HttpError(400, 'Kind must be portrait or background')
         if (!s.images) throw new HttpError(503, 'Image uploads aren’t set up on this server')

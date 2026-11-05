@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ApiError, api } from '@/lib/api'
 import { advanceTurn } from '@/lib/combat'
 import { parseConditions } from '@/lib/conditions'
+import { optimistic } from '@/lib/optimistic'
 import type { Creature, CreaturePatch, Encounter, EncounterPatch, EncounterSummary, NewCreature, NewEncounter, SharedEncounter } from '@/lib/types'
 
 export const keys = {
@@ -37,17 +38,21 @@ export function useEncounterList() {
   return useQuery({ queryKey: keys.encounters, queryFn: () => api.get<EncounterSummary[]>('encounters'), refetchInterval: 15_000 })
 }
 
-export function useEncounter(id: string) {
-  return useQuery({
+/** Shared by the page and by hovering its card, which starts loading it early. */
+export const encounterQuery = (id: string) =>
+  queryOptions({
     queryKey: keys.encounter(id),
     queryFn: async (): Promise<Encounter> => {
       const encounter = await orNotFound(api.get<Encounter>(`encounters/${id}`))
       return { ...encounter, creatures: encounter.creatures.map(withConditions) }
     },
   })
+
+export function useEncounter(id: string) {
+  return useQuery(encounterQuery(id))
 }
 
-export function useSharedEncounter(token: string) {
+export function useSharedEncounter(token: string, liveConnected = false) {
   return useQuery({
     queryKey: keys.shared(token),
     queryFn: async (): Promise<SharedEncounter | null> => {
@@ -60,8 +65,8 @@ export function useSharedEncounter(token: string) {
         throw e
       }
     },
-    // Live pings usually arrive first; this keeps the table screen within a couple of seconds regardless.
-    refetchInterval: 2_000,
+    // Live pings bring changes at once; without them, poll every couple of seconds (unchanged polls are an empty 304).
+    refetchInterval: pollEvery(liveConnected),
   })
 }
 
@@ -76,8 +81,9 @@ export function useSharedEncounter(token: string) {
  * `source` is the API path that hands out the URL: `live/<share token>` for the
  * shared link, `encounters/<id>/live` for signed-in players.
  */
-export function useLivePings(source: string | undefined, onChange: () => void) {
+export function useLivePings(source: string | undefined, onChange: () => void): boolean {
   const latest = useRef(onChange)
+  const [connected, setConnected] = useState(false)
   useEffect(() => {
     latest.current = onChange
   })
@@ -114,11 +120,15 @@ export function useLivePings(source: string | undefined, onChange: () => void) {
       socket = new WebSocket(url)
       socket.onopen = () => {
         attempt = 0
+        setConnected(true)
         // Catch up on anything missed while disconnected.
         fire()
       }
       socket.onmessage = fire
-      socket.onclose = reconnect
+      socket.onclose = () => {
+        setConnected(false)
+        reconnect()
+      }
     }
 
     void connect()
@@ -129,9 +139,13 @@ export function useLivePings(source: string | undefined, onChange: () => void) {
       socket?.close()
     }
   }, [source])
+  return connected
 }
 
 export const useEncounterPings = (token: string | undefined, onChange: () => void) => useLivePings(token && `live/${token}`, onChange)
+
+/** How often a live screen checks for changes: every couple of seconds, unless live pings already deliver them. */
+export const pollEvery = (liveConnected: boolean) => (liveConnected ? 20_000 : 2_000)
 
 // ─── Writes ──────────────────────────────────────────────────────────────────
 
@@ -214,12 +228,12 @@ export function useCreateEncounter() {
   })
 }
 
+/** Gone from the list at once; the delete request follows, and a failure puts it back. */
 export function useDeleteEncounter() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`encounters/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.encounters }),
-    onError: (error: Error) => toast.error(error.message),
+    ...optimistic<string, EncounterSummary[]>(qc, keys.encounters, (list, id) => list.filter((e) => e.id !== id)),
   })
 }
 

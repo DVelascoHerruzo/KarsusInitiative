@@ -213,7 +213,9 @@ function AuthForm({ next, initial }: { next: string; initial: Mode }) {
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {mode === 'register' && <p className="mt-1 font-ui text-xs text-dnd-muted italic">At least 8 characters.</p>}
+              {mode === 'register' && (
+                <p className="mt-1 font-ui text-xs text-dnd-muted italic">At least 8 characters. A long phrase is best; passwords from known data breaches are refused.</p>
+              )}
             </div>
           )}
 
@@ -240,6 +242,20 @@ function AuthForm({ next, initial }: { next: string; initial: Mode }) {
           {error && (
             <p role="alert" className="rounded-lg border border-dnd-crimson/60 bg-dnd-crimson/15 px-3 py-2 font-ui text-sm text-red-300">
               {error}
+            </p>
+          )}
+
+          {mode === 'register' && (
+            <p className="font-ui text-xs text-dnd-muted italic">
+              By creating an account you agree to the{' '}
+              <Link to="/terms" className="text-dnd-jade underline">
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" className="text-dnd-jade underline">
+                Privacy Policy
+              </Link>
+              .
             </p>
           )}
 

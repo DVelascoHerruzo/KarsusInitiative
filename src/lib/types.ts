@@ -328,4 +328,6 @@ export interface User {
   username: string
   /** Which side of the table they were on last. */
   mode: Mode
+  /** How they can sign in, for the account page. */
+  sign_in: { password: boolean; google: boolean }
 }

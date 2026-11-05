@@ -21,6 +21,9 @@ const Preset = lazy(() => import('@/pages/PresetPage'))
 const Play = lazy(() => import('@/pages/PlayPage'))
 const Demo = lazy(() => import('@/pages/DemoPage'))
 const DemoPlay = lazy(() => import('@/pages/DemoPlayPage'))
+const Account = lazy(() => import('@/pages/AccountPage'))
+const Privacy = lazy(() => import('@/pages/LegalPage').then((m) => ({ default: m.PrivacyPage })))
+const Terms = lazy(() => import('@/pages/LegalPage').then((m) => ({ default: m.TermsPage })))
 
 function RootLayout() {
   return (
@@ -75,6 +78,9 @@ export const router = createBrowserRouter([
       { path: '/play/:token', element: <Play /> },
       { path: '/demo', element: <Demo /> },
       { path: '/demo/play', element: <DemoPlay /> },
+      { path: '/account', element: authed(Account) },
+      { path: '/privacy', element: <Privacy /> },
+      { path: '/terms', element: <Terms /> },
       { path: '*', element: <NotFound /> },
     ],
   },

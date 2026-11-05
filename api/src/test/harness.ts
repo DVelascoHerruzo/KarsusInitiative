@@ -18,7 +18,13 @@ export interface TestApp {
   s: Services
   pings: string[]
   mail: { to: string; subject: string; text: string }[]
-  call(method: string, path: string, opts?: { body?: unknown; raw?: Uint8Array; type?: string; origin?: string; cookie?: string }): Promise<Res>
+  /** Image folders deleted, for account deletion. */
+  removedImages: string[]
+  /** Every URL the API fetched from the internet. */
+  requested: string[]
+  /** Everything in the store. */
+  dump(): unknown[]
+  call(method: string, path: string, opts?: CallOptions & { cookie?: string }): Promise<Res>
   /** A client that keeps cookies between calls, like a browser. */
   client(): Client
 }
@@ -32,7 +38,15 @@ export interface Res {
   cookies: NonNullable<ApiResponse['cookies']>
 }
 
-export type Client = (method: string, path: string, opts?: { body?: unknown; raw?: Uint8Array; type?: string; origin?: string }) => Promise<Res>
+export interface CallOptions {
+  body?: unknown
+  raw?: Uint8Array
+  type?: string
+  origin?: string
+  headers?: Record<string, string>
+}
+
+export type Client = (method: string, path: string, opts?: CallOptions) => Promise<Res>
 
 function match(path: string) {
   const [pathname] = path.split('?')
@@ -50,6 +64,8 @@ function match(path: string) {
 
 /** `web` maps outgoing URLs to the JSON they answer with; anything else is a 404. */
 export function testApp(overrides: { store?: Store; env?: Record<string, string>; web?: Record<string, unknown> } = {}): TestApp {
+  const requested: string[] = []
+  const store = overrides.store ?? memoryStore()
   const pings: string[] = []
   const mail: TestApp['mail'] = []
   const live: Live = {
@@ -60,9 +76,13 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
       return `wss://live.test/${token}`
     },
   }
+  const removedImages: string[] = []
   const images: Images = {
     async put(path) {
       return `https://images.test/${path}`
+    },
+    async removeAll(prefix) {
+      removedImages.push(prefix)
     },
   }
   const mailer: Mail = {
@@ -72,13 +92,15 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
   }
   const s: Services = {
     config: readConfig({ SESSION_SECRET: 'test-secret-that-is-at-least-32-characters', PUBLIC_ORIGIN: ORIGIN, ...overrides.env }),
-    store: overrides.store ?? memoryStore(),
+    store,
     live,
     images,
     mail: mailer,
     fetch: async (input) => {
+      requested.push(String(input))
       const body = overrides.web?.[String(input)]
-      return body === undefined ? new Response('{"success":false}', { status: 404 }) : Response.json(body)
+      if (body === undefined) return new Response('{"success":false}', { status: 404 })
+      return typeof body === 'string' ? new Response(body) : Response.json(body)
     },
     now: () => new Date(),
     log: { warn() {}, error() {} },
@@ -97,6 +119,7 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
     }
     if (opts.origin !== undefined) headers.set('origin', opts.origin)
     if (opts.cookie) headers.set('cookie', opts.cookie)
+    for (const [name, value] of Object.entries(opts.headers ?? {})) headers.set(name, value)
     const req: ApiRequest = {
       method,
       url: `${ORIGIN}${path}`,
@@ -113,6 +136,9 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
     s,
     pings,
     mail,
+    removedImages,
+    requested,
+    dump: () => ('dump' in store && typeof store.dump === 'function' ? (store.dump as () => unknown[])() : []),
     call,
     client() {
       const jar = new Map<string, string>()

@@ -13,13 +13,28 @@
     {
       "route": "/assets/*",
       "headers": { "cache-control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "route": "/icons/*",
+      "headers": { "cache-control": "public, max-age=604800" }
+    },
+    {
+      "route": "/background.jpg",
+      "headers": { "cache-control": "public, max-age=604800" }
+    },
+    {
+      "route": "/index.html",
+      "headers": { "cache-control": "no-cache" }
     }
   ],
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' https://storage.ko-fi.com; style-src 'self' 'unsafe-inline' https://storage.ko-fi.com; img-src 'self' data: blob: https:; font-src 'self' https://storage.ko-fi.com; frame-src https://ko-fi.com; connect-src 'self' wss://*.webpubsub.azure.com https://ko-fi.com https://storage.ko-fi.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.blob.core.windows.net https://www.dndbeyond.com; font-src 'self'; connect-src 'self' wss://*.webpubsub.azure.com; manifest-src 'self'; worker-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-site",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
   }
 }

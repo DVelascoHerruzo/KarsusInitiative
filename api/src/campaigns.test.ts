@@ -50,7 +50,11 @@ describe('remembering people', () => {
     const app = testApp()
     const { api } = await signedUp(app)
     const res = await api('GET', '/api/auth/me')
-    expect(res.cookies[0]).toMatchObject({ name: SESSION_COOKIE, maxAge: 365 * 24 * 60 * 60 })
+    // The old site-wide cookie is cleared, and the renewed one is set on /api.
+    expect(res.cookies).toEqual([
+      expect.objectContaining({ name: SESSION_COOKIE, path: '/', maxAge: 0 }),
+      expect.objectContaining({ name: SESSION_COOKIE, path: '/api', maxAge: 365 * 24 * 60 * 60 }),
+    ])
     expect((await app.call('GET', '/api/auth/me')).cookies).toEqual([])
   })
 })

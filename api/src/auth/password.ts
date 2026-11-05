@@ -1,4 +1,4 @@
-import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto'
+import { createHash, randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto'
 
 // scrypt at OWASP's recommended cost (N=2^17, r=8, p=1, 128 MiB). The parameters
 // are stored with each hash, so raising them later only affects new passwords.
@@ -39,4 +39,27 @@ let decoy: Promise<string> | null = null
 export async function spendPasswordTime(password: string): Promise<void> {
   decoy ??= hashPassword('karsus-timing-decoy')
   await verifyPassword(password, await decoy)
+}
+
+/**
+ * Whether a password has shown up in a known data breach, using Have I Been
+ * Pwned's range API: only the first 5 characters of its SHA-1 leave the server,
+ * never the password. If the service is slow or down, sign-up goes ahead.
+ */
+export async function isBreached(password: string, fetchFn: typeof fetch): Promise<boolean> {
+  const hash = createHash('sha1').update(password).digest('hex').toUpperCase()
+  try {
+    const res = await fetchFn(`https://api.pwnedpasswords.com/range/${hash.slice(0, 5)}`, {
+      headers: { 'Add-Padding': 'true', 'User-Agent': 'KarsusInitiative' },
+      signal: AbortSignal.timeout(2500),
+    })
+    if (!res.ok) return false
+    const suffix = hash.slice(5)
+    return (await res.text()).split('\n').some((line) => {
+      const [tail, count] = line.trim().split(':')
+      return tail === suffix && Number(count) > 0
+    })
+  } catch {
+    return false
+  }
 }
