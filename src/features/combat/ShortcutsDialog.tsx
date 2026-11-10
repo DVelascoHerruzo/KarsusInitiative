@@ -1,6 +1,6 @@
 import Modal from '@/components/ui/Modal'
 
-export const SHORTCUTS: { keys: string[]; label: string }[] = [
+const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['Space', '→'], label: 'Next turn (or start combat)' },
   { keys: ['Shift Space', '←'], label: 'Previous turn' },
   { keys: ['↓', 'J'], label: 'Select next creature' },
@@ -16,8 +16,8 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['?'], label: 'Show this list' },
 ]
 
-export function Kbd({ children }: { children: string }) {
-  return <kbd className="rounded border border-dnd-border bg-dnd-dark px-1.5 py-0.5 font-body text-[11px] text-dnd-parchment">{children}</kbd>
+function Kbd({ children }: { children: string }) {
+  return <kbd className="rounded border border-dnd-border bg-dnd-dark px-1.5 py-0.5 font-body text-[0.6875rem] text-dnd-parchment">{children}</kbd>
 }
 
 export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {

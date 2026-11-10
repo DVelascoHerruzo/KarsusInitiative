@@ -1,5 +1,6 @@
 import { useRef, useState, type Ref } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
+import { useDisplay } from '@/lib/display'
 import { Dices, Trash2 } from 'lucide-react'
 import { DiceSyntaxError, rollDice, type RollResult } from '@/lib/dice'
 import { cn } from '@/lib/cn'
@@ -14,7 +15,19 @@ interface LoggedRoll extends RollResult {
 
 let nextId = 1
 
-export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputElement>; className?: string }) {
+type DicePanelProps = { inputRef?: Ref<HTMLInputElement>; className?: string }
+
+/** The dice roller. Its animations follow the Reduce motion display setting. */
+export function DicePanel(props: DicePanelProps) {
+  const [{ calm }] = useDisplay()
+  return (
+    <MotionConfig reducedMotion={calm ? 'always' : 'never'}>
+      <Dice {...props} />
+    </MotionConfig>
+  )
+}
+
+function Dice({ inputRef, className }: DicePanelProps) {
   const [notation, setNotation] = useState('')
   const [mode, setMode] = useState<Mode>('normal')
   const [error, setError] = useState<string | null>(null)
@@ -107,8 +120,8 @@ export function DicePanel({ inputRef, className }: { inputRef?: Ref<HTMLInputEle
             onClick={() => setMode(m)}
             title={m === 'normal' ? 'The d20 button rolls once' : m === 'advantage' ? 'The d20 button rolls two and keeps the higher' : 'The d20 button rolls two and keeps the lower'}
             className={cn(
-              'h-8 rounded-md font-body text-[11px] tracking-wider capitalize transition-colors',
-              mode === m ? 'bg-dnd-teal text-white' : 'text-dnd-muted hover:text-dnd-parchment',
+              'h-8 rounded-md font-body text-[0.6875rem] tracking-wider capitalize transition-colors',
+              mode === m ? 'bg-dnd-teal-strong text-white' : 'text-dnd-muted hover:text-dnd-parchment',
             )}
           >
             {m === 'normal' ? 'Straight' : m}

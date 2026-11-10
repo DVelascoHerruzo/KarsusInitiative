@@ -332,4 +332,6 @@ export interface User {
   sign_in: { password: boolean; google: boolean }
   /** Whether they've opened the link in their verification email (or signed in with Google). */
   email_verified: boolean
+  /** When a verification link last actually went out; null if none has. */
+  verification_sent_at: string | null
 }

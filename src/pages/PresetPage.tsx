@@ -234,10 +234,10 @@ function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate font-body text-sm font-medium text-dnd-parchment">{c.name}</span>
-            {c.is_player && <span className="rounded border border-dnd-gold/40 px-1.5 text-[10px] tracking-widest text-dnd-gold uppercase">PC</span>}
-            {c.hidden && <span className="rounded border border-purple-500/50 px-1.5 text-[10px] tracking-widest text-purple-300 uppercase">Hidden</span>}
+            {c.is_player && <span className="rounded border border-dnd-gold/40 px-1.5 text-[0.625rem] tracking-widest text-dnd-gold uppercase">PC</span>}
+            {c.hidden && <span className="rounded border border-purple-500/50 px-1.5 text-[0.625rem] tracking-widest text-purple-300 uppercase">Hidden</span>}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-dnd-muted">
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[0.6875rem] text-dnd-muted">
             {c.sheet && c.sheet.classes.length > 0 && <span>{classSummary(c.sheet.classes)}</span>}
             <span className="flex items-center gap-0.5" title="Initiative bonus">
               <Zap className="h-3 w-3 text-dnd-amber" /> {formatModifier(c.initiative_bonus)}
@@ -253,8 +253,8 @@ function CreatureCard({ creature: c, playedBy, onEdit, onSheet, onToggleHidden, 
               </span>
             )}
           </div>
-          {c.is_player && <p className="mt-0.5 font-ui text-[11px] text-dnd-jade/80 italic">{playedBy ? `Played by ${playedBy}` : 'Nobody plays them yet'}</p>}
-          {c.notes && <p className="mt-0.5 truncate font-ui text-[11px] text-dnd-muted/70 italic">{c.notes}</p>}
+          {c.is_player && <p className="mt-0.5 font-ui text-[0.6875rem] text-dnd-jade/80 italic">{playedBy ? `Played by ${playedBy}` : 'Nobody plays them yet'}</p>}
+          {c.notes && <p className="mt-0.5 truncate font-ui text-[0.6875rem] text-dnd-muted/70 italic">{c.notes}</p>}
         </div>
 
         <div className="flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-sm:opacity-100">

@@ -26,12 +26,12 @@ export function param(req: ApiRequest, name: string): string {
 // it. Encounters launched from a campaign are open to that campaign's members
 // with the same roles.
 
-export type Access = 'player' | 'dm' | 'owner'
+type Access = 'player' | 'dm' | 'owner'
 const RANK: Record<Access, number> = { player: 0, dm: 1, owner: 2 }
 
 const NOT_FOUND = { encounter: 'Encounter not found', preset: 'Preset not found' } satisfies Record<Kind, string>
 
-export interface Opened<K extends Kind> {
+interface Opened<K extends Kind> {
   doc: DocOf<K>
   access: Access
   /** For an encounter launched from a campaign, that campaign. */
@@ -47,14 +47,14 @@ async function ownerOf(s: Services, userId: string, kind: Kind, id: string): Pro
   return userId
 }
 
-export async function getCampaign(s: Services, doc: TableDoc): Promise<PresetDoc | null> {
+async function getCampaign(s: Services, doc: TableDoc): Promise<PresetDoc | null> {
   if (doc.kind !== 'encounter' || !doc.campaign_id) return null
   const found = await s.store.getTable(doc.owner_id, 'preset', doc.campaign_id)
   return found ? upgrade(found.doc) : null
 }
 
 /** The caller's standing at a table, or null when it's closed to them. */
-export function accessTo(userId: string, doc: TableDoc, campaign: PresetDoc | null): Access | null {
+function accessTo(userId: string, doc: TableDoc, campaign: PresetDoc | null): Access | null {
   if (doc.owner_id === userId) return 'owner'
   const direct = doc.members.find((m) => m.user_id === userId)?.role
   const viaCampaign = campaign?.members.find((m) => m.user_id === userId)?.role

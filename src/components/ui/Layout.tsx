@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { ShortcutsDialog } from '@/features/combat/ShortcutsDialog'
 import { cn } from '@/lib/cn'
 import { THEMES, useTheme } from '@/lib/theme'
+import { DisplayMenu } from '@/components/ui/DisplaySettings'
 import type { Mode } from '@/lib/types'
 import { Emblem } from './Emblem'
 import { LegalFooter } from './LegalFooter'
@@ -23,7 +24,7 @@ export default function Layout({ children, title, guest }: LayoutProps) {
     <div className="flex min-h-screen flex-col">
       {/* The city stays in view, washed dark enough for text to read over it. */}
       <div aria-hidden className="bg-adventure pointer-events-none fixed inset-0 -z-10" />
-      <a href="#main" className="sr-only z-50 rounded bg-dnd-teal px-3 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+      <a href="#main" className="sr-only z-50 rounded bg-dnd-teal-strong px-3 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
         Skip to content
       </a>
       <header className="dnd-header sticky top-0 z-40">
@@ -54,7 +55,7 @@ export default function Layout({ children, title, guest }: LayoutProps) {
         {children}
       </main>
 
-      <footer className="border-t border-dnd-border/20 px-4 py-4 text-center font-ui text-[11px] leading-relaxed text-dnd-muted/70">
+      <footer className="border-t border-dnd-border/20 px-4 py-4 text-center font-ui text-[0.6875rem] leading-relaxed text-dnd-muted/70">
         <p className="mb-1 text-xs text-dnd-muted/50">⚔ Karsus Initiative Tracker ⚔</p>
         <LegalFooter />
       </footer>
@@ -71,9 +72,9 @@ export function Logo({ size = 'sm' }: { size?: 'sm' | 'md' }) {
           size === 'md' ? 'h-10 w-10' : 'h-9 w-9',
         )}
       />
-      <div className="leading-tight">
+      <div className="logo-wordmark leading-tight">
         <span className={cn('font-display tracking-widest text-dnd-jade', size === 'md' ? 'text-base' : 'text-sm')}>KARSUS</span>
-        <span className="block font-body text-[10px] tracking-[0.25em] text-dnd-muted">INITIATIVE</span>
+        <span className="block font-body text-[0.625rem] tracking-[0.25em] text-dnd-muted">INITIATIVE</span>
       </div>
     </Link>
   )
@@ -104,8 +105,8 @@ function ModeSwitch() {
               navigate('/')
             }}
             className={cn(
-              'rounded-md px-2.5 py-1 font-body text-[11px] tracking-widest uppercase transition-colors sm:px-3',
-              on ? 'bg-dnd-teal text-white shadow-glow-teal' : 'text-dnd-muted hover:text-dnd-parchment',
+              'rounded-md px-2.5 py-1 font-body text-[0.6875rem] tracking-widest uppercase transition-colors sm:px-3',
+              on ? 'bg-dnd-teal-strong text-white shadow-glow-teal' : 'text-dnd-muted hover:text-dnd-parchment',
             )}
           >
             <span className="sm:hidden">{m.short}</span>
@@ -146,7 +147,7 @@ function AccountMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label="Account menu"
-        title="Colour theme, keyboard shortcuts and signing out"
+        title="Color theme, display settings, keyboard shortcuts and signing out"
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 font-ui text-sm text-dnd-jade transition-colors hover:bg-dnd-surface/60"
       >
         <User className="h-3.5 w-3.5" />
@@ -155,13 +156,13 @@ function AccountMenu() {
       </button>
 
       {open && (
-        <div className="dnd-card absolute top-full right-0 z-50 mt-1 w-64 animate-slide-in py-2">
+        <div className="dnd-card absolute top-full right-0 z-50 mt-1 max-h-[calc(100dvh-4.5rem)] w-64 animate-slide-in overflow-y-auto py-2">
           <div className="border-b border-dnd-border/50 px-3 pb-2">
             <p className="truncate font-body text-sm text-dnd-parchment">{displayName}</p>
             <p className="truncate text-xs text-dnd-muted">{user?.email}</p>
           </div>
           <div className="px-3 py-2">
-            <p className="mb-2 flex items-center gap-1.5 font-body text-[10px] tracking-[0.2em] text-dnd-muted uppercase">
+            <p className="mb-2 flex items-center gap-1.5 font-body text-[0.625rem] tracking-[0.2em] text-dnd-muted uppercase">
               <Palette className="h-3 w-3" /> Color Theme
             </p>
             <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Color theme">
@@ -192,7 +193,7 @@ function AccountMenu() {
                 type="button"
                 onClick={() => setTheme('custom')}
                 aria-pressed={theme === 'custom'}
-                className="mb-1.5 flex w-full items-center gap-2 font-body text-[10px] tracking-[0.2em] text-dnd-muted uppercase hover:text-dnd-parchment"
+                className="mb-1.5 flex w-full items-center gap-2 font-body text-[0.625rem] tracking-[0.2em] text-dnd-muted uppercase hover:text-dnd-parchment"
               >
                 <span
                   aria-hidden
@@ -206,6 +207,9 @@ function AccountMenu() {
                 <ColorField label="Text accent" value={custom.heading} onChange={(heading) => setCustom({ ...custom, heading })} />
               </div>
             </div>
+          </div>
+          <div className="border-t border-dnd-border/50">
+            <DisplayMenu />
           </div>
           <div className="mt-1 border-t border-dnd-border/50 px-1 pt-1">
             <Link
@@ -257,7 +261,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
         onChange={(e) => onChange(e.target.value.toUpperCase())}
         className="h-6 w-6 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
       />
-      <span className="truncate font-ui text-[11px] text-dnd-parchment">{label}</span>
+      <span className="truncate font-ui text-[0.6875rem] text-dnd-parchment">{label}</span>
     </label>
   )
 }

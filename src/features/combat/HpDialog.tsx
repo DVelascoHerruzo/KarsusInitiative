@@ -17,7 +17,7 @@ const MODES: { mode: HpMode; label: string; icon: typeof HeartCrack; on: string 
 const QUICK = [1, 2, 5, 10]
 
 /** The fields the dialog reads, so the player view's creatures work as well as the DM's. */
-export type HpTarget = Pick<Creature, 'id' | 'name' | 'is_player' | 'current_hp' | 'max_hp' | 'temp_hp' | 'conditions'>
+type HpTarget = Pick<Creature, 'id' | 'name' | 'is_player' | 'current_hp' | 'max_hp' | 'temp_hp' | 'conditions'>
 
 interface HpDialogProps<T extends HpTarget> {
   creature: T | null

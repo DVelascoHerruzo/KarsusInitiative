@@ -123,7 +123,7 @@ const FULL_CASTERS = new Set(['bard', 'cleric', 'druid', 'sorcerer', 'wizard'])
 const HALF_CASTERS = new Set(['paladin', 'ranger', 'artificer'])
 const THIRD_CASTER_SUBCLASSES = new Set(['eldritch knight', 'arcane trickster'])
 
-export const CASTING_ABILITY: Record<string, Ability> = {
+const CASTING_ABILITY: Record<string, Ability> = {
   artificer: 'int',
   bard: 'cha',
   cleric: 'wis',

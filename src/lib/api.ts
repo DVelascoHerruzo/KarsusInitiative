@@ -14,6 +14,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Something that isn't there (or isn't yours): a second try won't change that. */
+export class NotFoundError extends Error {
+  constructor() {
+    super('Not found')
+  }
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {}
   let payload: BodyInit | undefined

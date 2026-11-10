@@ -1,5 +1,5 @@
-import { lazy, Suspense, type ComponentType } from 'react'
-import { Outlet, ScrollRestoration, createBrowserRouter } from 'react-router'
+import { lazy, Suspense, useEffect, type ComponentType } from 'react'
+import { Outlet, ScrollRestoration, createBrowserRouter, useLocation } from 'react-router'
 import { Toaster } from 'sonner'
 import { Tooltips } from '@/components/ui/Tooltips'
 import { FullScreenLoader } from '@/components/ui/tokens'
@@ -27,7 +27,25 @@ const VerifyEmail = lazy(() => import('@/pages/VerifyEmailPage'))
 const Privacy = lazy(() => import('@/pages/LegalPage').then((m) => ({ default: m.PrivacyPage })))
 const Terms = lazy(() => import('@/pages/LegalPage').then((m) => ({ default: m.TermsPage })))
 
+/**
+ * index.html names the homepage as the canonical page. Every other page names
+ * itself instead (same site, no query string), so search engines don't read
+ * /privacy or /demo as copies of the homepage.
+ */
+function useCanonical() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    for (const el of document.querySelectorAll<HTMLLinkElement | HTMLMetaElement>('link[rel="canonical"], meta[property="og:url"]')) {
+      const current = el instanceof HTMLLinkElement ? el.href : el.content
+      const url = new URL(pathname, new URL(current).origin).href
+      if (el instanceof HTMLLinkElement) el.href = url
+      else el.content = url
+    }
+  }, [pathname])
+}
+
 function RootLayout() {
+  useCanonical()
   return (
     <>
       <Suspense fallback={<FullScreenLoader />}>

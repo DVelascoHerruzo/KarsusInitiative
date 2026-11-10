@@ -286,7 +286,7 @@ function SheetForm({ onClose, submitLabel, initial, askInitiative, onSubmit, upl
                     className="mt-1.5 px-1 py-1.5 text-center font-display text-lg"
                   />
                   <p className="mt-1 font-body text-sm text-dnd-gold">{formatModifier(abilityModifier(sheet.abilities[a.key]))}</p>
-                  <label className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-dnd-muted">
+                  <label className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.6875rem] text-dnd-muted">
                     <input
                       type="checkbox"
                       checked={proficient}
@@ -320,7 +320,7 @@ function SheetForm({ onClose, submitLabel, initial, askInitiative, onSubmit, upl
                       {SKILL_MARK[state ?? 'none']}
                     </span>
                     <span className="flex-1 font-ui text-dnd-parchment">{s.name}</span>
-                    <span className="font-body text-[10px] tracking-widest text-dnd-muted uppercase">{s.ability}</span>
+                    <span className="font-body text-[0.625rem] tracking-widest text-dnd-muted uppercase">{s.ability}</span>
                     <span className="w-8 text-right font-body text-dnd-gold">{formatModifier(skillBonus(sheet, s.key))}</span>
                   </button>
                 </li>
@@ -361,7 +361,7 @@ function SheetForm({ onClose, submitLabel, initial, askInitiative, onSubmit, upl
           <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-9">
             {Array.from({ length: 9 }, (_, i) => i + 1).map((lvl) => (
               <div key={lvl}>
-                <label htmlFor={`slots-${lvl}`} className="mb-1 block text-center font-body text-[10px] tracking-widest text-dnd-muted uppercase">
+                <label htmlFor={`slots-${lvl}`} className="mb-1 block text-center font-body text-[0.625rem] tracking-widest text-dnd-muted uppercase">
                   {ordinal(lvl)}
                 </label>
                 <NumberInput

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, NotFoundError, api } from '@/lib/api'
 import { advanceTurn } from '@/lib/combat'
 import { parseConditions } from '@/lib/conditions'
 import { optimistic } from '@/lib/optimistic'
@@ -13,11 +13,8 @@ export const keys = {
   shared: (token: string) => ['shared', token] as const,
 }
 
-export class NotFoundError extends Error {
-  constructor() {
-    super('Not found')
-  }
-}
+// Lives in lib/api so the app shell can check for it without loading this module.
+export { NotFoundError }
 
 /** A 404 from the API becomes NotFoundError, so pages can tell "gone" from "broken". */
 export async function orNotFound<T>(request: Promise<T>): Promise<T> {

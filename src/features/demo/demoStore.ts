@@ -40,7 +40,7 @@ function creature(c: Partial<Creature> & Pick<Creature, 'name' | 'initiative'>):
   }
 }
 
-export function seedEncounter(): Encounter {
+function seedEncounter(): Encounter {
   seq = 0
   const creatures = [
     creature({ name: 'Vex', is_player: true, initiative: 21, initiative_bonus: 4, max_hp: 33, current_hp: 27, armor_class: 15, notes: 'Sneak Attack 3d6. Cunning Action to hide.' }),

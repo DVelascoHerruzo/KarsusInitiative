@@ -18,14 +18,28 @@
   --color-dnd-card: rgb(var(--bg-card-rgb));
   --color-dnd-border: rgb(var(--bg-border-rgb));
   --color-dnd-parchment: rgb(var(--color-text-rgb));
-  --color-dnd-muted: rgb(var(--color-muted-rgb));
+  /* High contrast (html[data-contrast]) mixes secondary text toward the main text colour. */
+  --color-dnd-muted: color-mix(in srgb, rgb(var(--color-muted-rgb)), rgb(var(--color-text-rgb)) var(--muted-boost, 0%));
   --color-dnd-gold: rgb(var(--color-heading-rgb));
   --color-dnd-amber: rgb(var(--color-heading-bright-rgb));
   --color-dnd-teal: rgb(var(--theme-primary-rgb));
+  /* The theme colour dark enough for white text on it (4.5:1 or better). */
+  --color-dnd-teal-strong: var(--theme-button);
   --color-dnd-jade: rgb(var(--theme-accent-rgb));
-  /* Danger reds don't change with the theme. */
+  /* Danger reds don't change with the theme; high contrast brightens the red. */
   --color-dnd-crimson: #8b1c1c;
-  --color-dnd-red: #c0392b;
+  --color-dnd-red: var(--danger);
+
+  /* Health, which the colour-vision modes repaint: text for tags, fills for HP bars. */
+  --color-hp-healthy: var(--hp-healthy);
+  --color-hp-wounded: var(--hp-wounded);
+  --color-hp-bloodied: var(--hp-bloodied);
+  --color-hp-critical: var(--hp-critical);
+  --color-hp-down: var(--hp-down);
+  --color-hp-bar-healthy: var(--hp-bar-healthy);
+  --color-hp-bar-hurt: var(--hp-bar-hurt);
+  --color-hp-bar-critical: var(--hp-bar-critical);
+  --color-hp-bar-temp: var(--hp-bar-temp);
 
   --font-display: 'Cinzel Decorative', 'MedievalSharp', Georgia, serif;
   --font-body: 'Cinzel', 'Palatino Linotype', Georgia, serif;
@@ -34,23 +48,12 @@
   --shadow-glow-gold: 0 0 20px rgb(var(--color-heading-rgb) / 0.45);
   --shadow-glow-teal: 0 0 24px rgb(var(--theme-primary-rgb) / 0.55);
   --shadow-glow-jade: 0 0 24px rgb(var(--theme-accent-rgb) / 0.5);
-  --shadow-glow-red: 0 0 20px rgba(192, 57, 43, 0.6);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.7);
 
-  --animate-pulse-gold: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-slide-in: slide-in 0.3s ease-out;
   --animate-fade-in: fade-in 0.2s ease-out;
 }
 
-@keyframes pulse-gold {
-  0%,
-  100% {
-    box-shadow: 0 0 8px rgb(var(--color-heading-rgb) / 0.3);
-  }
-  50% {
-    box-shadow: 0 0 28px rgb(var(--color-heading-rgb) / 0.8);
-  }
-}
 @keyframes slide-in {
   from {
     transform: translateY(-10px);
@@ -73,6 +76,18 @@
 /* ─── Colour themes ─────────────────────────────────────────────────────────
    Picked from the account menu and kept in this browser. Every *-rgb value is
    space-separated so utilities can add an alpha: bg-dnd-gold/10. */
+/* Any theme colour, custom picks included, darkened just enough to carry white text. */
+:root {
+  --theme-button: color-mix(in oklab, var(--theme-primary) 72%, black);
+  --theme-button-hover: color-mix(in oklab, var(--theme-primary) 62%, black);
+}
+@supports (color: oklch(from red l c h)) {
+  :root {
+    --theme-button: oklch(from var(--theme-primary) min(l, 0.5) c h);
+    --theme-button-hover: oklch(from var(--theme-primary) min(l, 0.44) c h);
+  }
+}
+
 :root {
   /* Teal (default): dark navy ocean */
   --theme-primary: #0d9488;
@@ -370,10 +385,10 @@ html[data-theme='purple'] {
 
   .dnd-button-primary {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-6 py-2.5 font-body tracking-wider text-white shadow-md transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50;
-    background-color: var(--theme-primary);
+    background-color: var(--theme-button);
   }
   .dnd-button-primary:hover:not(:disabled) {
-    background-color: var(--theme-accent);
+    background-color: var(--theme-button-hover);
     box-shadow: 0 0 24px rgb(var(--theme-accent-rgb) / 0.5);
   }
 
@@ -411,11 +426,6 @@ html[data-theme='purple'] {
     @apply mb-1.5 block font-body text-sm tracking-widest uppercase;
     color: var(--theme-accent);
   }
-
-  .initiative-active {
-    @apply animate-pulse-gold;
-    box-shadow: 0 0 0 2px var(--theme-accent);
-  }
 }
 
 /* Subtle ripple pattern for cards without a backdrop. */
@@ -436,3 +446,184 @@ html[data-theme='white'] .bg-adventure {
   );
 }
 
+/* Dialogs (Modal.tsx): a quick fade for the backdrop, a small drop-in for the panel.
+   Reduced motion keeps a 1ms animation so the closing one still ends and unmounts. */
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modal-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+/* Closing needs its own names: the same animation set to reverse wouldn't restart. */
+@keyframes modal-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modal-lift {
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+.modal-overlay {
+  animation: modal-fade 160ms ease-out both;
+}
+.modal-panel {
+  animation: modal-drop 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.modal-overlay[data-closing] {
+  pointer-events: none;
+  animation: modal-fade-out 140ms ease-in both;
+}
+.modal-overlay[data-closing] .modal-panel {
+  animation: modal-lift 140ms ease-in both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-panel,
+  .modal-overlay[data-closing],
+  .modal-overlay[data-closing] .modal-panel {
+    animation-duration: 1ms;
+  }
+}
+
+/* ─── Display settings ──────────────────────────────────────────────────────
+   Set from the account menu or page (src/lib/display.ts) as attributes on <html>.
+   The health-colour and font selectors also work on any element, so the account
+   page can preview each choice inside its own option. */
+
+/* Colours that carry meaning. Each mode's palette was checked with a simulation of
+   that colour blindness (Machado 2009): every pair stays clearly apart, for that
+   vision and for typical vision, where today's green/lime/yellow did not. */
+:root,
+[data-vision='standard'] {
+  --danger: #c0392b;
+  --hp-healthy: var(--color-emerald-400);
+  --hp-wounded: var(--color-lime-300);
+  --hp-bloodied: var(--color-yellow-300);
+  --hp-critical: var(--color-red-300);
+  --hp-down: var(--color-gray-400);
+  --hp-bar-healthy: var(--color-emerald-500);
+  --hp-bar-hurt: var(--color-yellow-500);
+  --hp-bar-critical: var(--color-red-500);
+  --hp-bar-temp: var(--color-sky-300);
+}
+
+/* Protanopia and deuteranopia: blue, yellow and orange, which red–green colour
+   blindness keeps apart, also spaced by brightness. */
+[data-vision='red-green'] {
+  --danger: #e2561c;
+  --hp-healthy: var(--color-blue-400);
+  --hp-wounded: var(--color-cyan-200);
+  --hp-bloodied: var(--color-yellow-200);
+  --hp-critical: var(--color-orange-500);
+  --hp-bar-healthy: var(--color-blue-500);
+  --hp-bar-hurt: var(--color-yellow-300);
+  --hp-bar-critical: var(--color-orange-600);
+  --hp-bar-temp: var(--color-sky-200);
+}
+
+/* Tritanopia: blue and green merge, as do yellow and pink, so the steps are told
+   apart by brightness: green, pale amber, deep orange. */
+[data-vision='blue-yellow'] {
+  --hp-healthy: var(--color-emerald-500);
+  --hp-wounded: var(--color-cyan-300);
+  --hp-bloodied: var(--color-amber-100);
+  --hp-critical: var(--color-red-400);
+  --hp-bar-healthy: var(--color-emerald-600);
+  --hp-bar-hurt: var(--color-amber-100);
+  --hp-bar-critical: var(--color-orange-700);
+  --hp-bar-temp: var(--color-cyan-300);
+}
+
+/* Not by colour alone: in either mode, critical HP is also striped. */
+[data-vision='red-green'] [data-hp='critical'],
+[data-vision='blue-yellow'] [data-hp='critical'] {
+  background-image: repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.5) 0 2px, transparent 2px 5px);
+}
+/* ...but not in the account page's Classic preview while a mode is on. */
+[data-vision='standard'] [data-hp='critical'] {
+  background-image: none;
+}
+
+/* High contrast: secondary text close to the main text, borders as bright as
+   secondary text, solid panels instead of see-through ones, a brighter red.
+   !important so it also wins over a custom theme's inline colours. */
+html[data-contrast='more'] {
+  --muted-boost: 50%;
+  --bg-border-rgb: var(--color-muted-rgb) !important;
+  --bg-border: rgb(var(--color-muted-rgb)) !important;
+  --danger: #ff7262;
+}
+html[data-contrast='more'][data-vision='red-green'] {
+  --danger: #ff8a4c;
+}
+html[data-contrast='more'] .dnd-card,
+html[data-contrast='more'] .dnd-header {
+  background-color: rgb(var(--bg-card-rgb));
+  backdrop-filter: none;
+}
+html[data-contrast='more'] .dnd-input {
+  background-color: rgb(var(--bg-black-rgb));
+}
+html[data-contrast='more'] :focus-visible {
+  outline-width: 3px;
+}
+
+/* Text size: everything is sized in rem, so the whole interface grows together. */
+html[data-text-size='large'] {
+  font-size: 112.5%;
+}
+html[data-text-size='larger'] {
+  font-size: 125%;
+}
+/* At the largest size a phone header only fits the emblem beside the menus. */
+@media (max-width: 30rem) {
+  html[data-text-size='larger'] .logo-wordmark {
+    display: none;
+  }
+}
+
+/* Clear font: Atkinson Hyperlegible for every voice. Cinzel only has capitals, so
+   its wide tracking would look loose on mixed case; capitals keep a little. */
+html[data-font='clear'],
+html[data-font='clear'] *,
+[data-font-sample='clear'] * {
+  font-family: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif !important;
+  letter-spacing: normal !important;
+}
+html[data-font='clear'] .uppercase,
+[data-font-sample='clear'] .uppercase {
+  letter-spacing: 0.06em !important;
+}
+/* The account page's Classic sample keeps the classic fonts. */
+html[data-font='clear'] [data-font-sample='classic'] .font-body {
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+html[data-font='clear'] [data-font-sample='classic'] .font-ui {
+  font-family: 'IM Fell English', Georgia, serif !important;
+}
+
+/* Reduce motion: animations and transitions finish at once (1ms, not none, so the
+   ones that unmount something when they end still end). */
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] ::before,
+html[data-motion='reduce'] ::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Plain background: no painting, just the theme's dark colour. */
+html[data-backdrop='plain'] {
+  background-image: none !important;
+}

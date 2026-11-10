@@ -31,6 +31,8 @@ export interface UserEntry {
   locked_until: number | null
   /** The side of the table they were on last; missing on older accounts. */
   mode?: Mode
+  /** When a verification email last went out; missing if none ever did (accounts from before verification). */
+  verify_sent_at?: string | null
   created_at: string
 }
 

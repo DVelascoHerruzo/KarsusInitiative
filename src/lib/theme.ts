@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 // html[data-theme]; a custom theme is built here from two colours the user picks
 // and set as inline variables on <html>, which win over the stylesheet.
 
-export type PresetTheme = 'teal' | 'black' | 'white' | 'red' | 'yellow' | 'green' | 'orange' | 'purple'
-export type ThemeId = PresetTheme | 'custom'
+type PresetTheme = 'teal' | 'black' | 'white' | 'red' | 'yellow' | 'green' | 'orange' | 'purple'
+type ThemeId = PresetTheme | 'custom'
 
 export const THEMES: { id: PresetTheme; label: string; color: string }[] = [
   { id: 'teal', label: 'Teal', color: '#2DD4BF' },
@@ -19,12 +19,12 @@ export const THEMES: { id: PresetTheme; label: string; color: string }[] = [
 ]
 
 /** The two colours of a custom theme: buttons and highlights, and headings. */
-export interface CustomColors {
+interface CustomColors {
   primary: string
   heading: string
 }
 
-export const DEFAULT_CUSTOM: CustomColors = { primary: '#0D9488', heading: '#E8A917' }
+const DEFAULT_CUSTOM: CustomColors = { primary: '#0D9488', heading: '#E8A917' }
 
 const KEY = 'theme'
 const CUSTOM_KEY = 'theme-custom'
@@ -52,7 +52,7 @@ export function savedTheme(): ThemeId {
   return value === 'custom' || THEMES.some((t) => t.id === value) ? (value as ThemeId) : 'teal'
 }
 
-export function savedCustom(): CustomColors {
+function savedCustom(): CustomColors {
   try {
     const parsed = JSON.parse(read(CUSTOM_KEY) ?? 'null') as Partial<CustomColors> | null
     if (parsed && isHex(parsed.primary) && isHex(parsed.heading)) return { primary: parsed.primary, heading: parsed.heading }
@@ -93,7 +93,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * Every theme variable from two colours. The backgrounds are near-black tints of
  * the main colour's hue, as in the preset themes, so any pick stays readable.
  */
-export function customPalette({ primary, heading }: CustomColors): Record<string, string> {
+function customPalette({ primary, heading }: CustomColors): Record<string, string> {
   const [h, s, l] = hexToHsl(primary)
   const [hh, hs, hl] = hexToHsl(heading)
   // Greys stay grey: tint the backgrounds only as much as the colour itself is saturated.
