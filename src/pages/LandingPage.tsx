@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { ChevronRight, Monitor, ScrollText, Sword, Users } from 'lucide-react'
 import { Logo } from '@/components/ui/Layout'
 import { LegalFooter } from '@/components/ui/LegalFooter'
+import { BACKDROP } from '@/lib/backdrop'
 import { useTealTheme } from '@/lib/theme'
 
 const FEATURES = [
@@ -19,7 +20,11 @@ export default function LandingPage() {
       <title>Karsus – D&D Initiative Tracker</title>
       {/* Background: lighter at the top so the navbar reads, heavier toward the bottom to anchor the copy. */}
       <div className="absolute inset-0 z-0">
-        <img src="/background.jpg" alt="" fetchPriority="high" className="h-full w-full object-cover object-center" />
+        <picture>
+          <source type="image/avif" srcSet={BACKDROP.avif} sizes="100vw" />
+          <source type="image/webp" srcSet={BACKDROP.webp} sizes="100vw" />
+          <img src={BACKDROP.fallback} alt="" fetchPriority="high" decoding="async" className="h-full w-full object-cover object-center" />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-b from-dnd-black/60 via-dnd-black/45 to-dnd-black/85" />
         <div className="absolute inset-0 bg-gradient-to-r from-dnd-teal/10 via-transparent to-transparent" />
       </div>

@@ -281,10 +281,24 @@ html[data-theme='purple'] {
     font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
     background-color: var(--bg-black);
-    background-image: url('/background.jpg');
+    /* AVIF where supported, then WebP, then JPEG; phones take a smaller file. */
+    background-image: image-set(
+      url('../assets/backdrop/backdrop-1920.avif') type('image/avif'),
+      url('../assets/backdrop/backdrop-1920.webp') type('image/webp'),
+      url('../assets/backdrop/backdrop-1920.jpg') type('image/jpeg')
+    );
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
+  }
+  @media (max-width: 900px) {
+    html {
+      background-image: image-set(
+        url('../assets/backdrop/backdrop-1280.avif') type('image/avif'),
+        url('../assets/backdrop/backdrop-1280.webp') type('image/webp'),
+        url('../assets/backdrop/backdrop-1920.jpg') type('image/jpeg')
+      );
+    }
   }
 
   *,

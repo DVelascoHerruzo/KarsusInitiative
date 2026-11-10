@@ -63,9 +63,19 @@ export async function currentUser(s: Services, req: ApiRequest): Promise<UserEnt
   return user && user.session_version === claims.ver ? user : null
 }
 
-export async function requireUser(s: Services, req: ApiRequest): Promise<UserEntry> {
+/** Whether accounts must confirm their email before using the site: only where email can be sent. */
+export const verificationRequired = (s: Services) => s.mail !== null
+
+/**
+ * The signed-in account, or 401. Until the email is confirmed (403), only the
+ * account's own routes work: verifying, resending, settings, export and deletion.
+ */
+export async function requireUser(s: Services, req: ApiRequest, opts: { allowUnverified?: boolean } = {}): Promise<UserEntry> {
   const user = await currentUser(s, req)
   if (!user) throw new HttpError(401, 'Sign in to continue')
+  if (!user.email_verified && !opts.allowUnverified && verificationRequired(s)) {
+    throw new HttpError(403, 'Confirm your email first: open the link we sent you.')
+  }
   return user
 }
 
@@ -75,4 +85,5 @@ export const publicUser = (u: UserEntry): User => ({
   username: u.username,
   mode: u.mode ?? 'dm',
   sign_in: { password: u.password_hash !== null, google: u.google_sub !== null },
+  email_verified: u.email_verified,
 })

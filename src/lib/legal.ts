@@ -1,14 +1,15 @@
-// Who runs the site, for the privacy policy and terms. Fill in CONTACT_EMAIL before
-// going live: the GDPR requires a way to reach whoever controls people's data.
+// Who runs the site, for the privacy policy, the terms and every email we send.
+// The GDPR requires a way to reach whoever controls people's data.
 
 export const SITE_NAME = 'Karsus Initiative'
-export const CONTACT_EMAIL: string | null = null
+/** Support inbox: shown on the legal pages, and replies to any Karsus email land here. */
+export const CONTACT_EMAIL: string | null = 'karsus.support@gmail.com'
 export const KOFI_URL = 'https://ko-fi.com/barope'
 /** When the privacy policy and terms last changed. */
-export const LEGAL_UPDATED = '2026-11-05'
+export const LEGAL_UPDATED = '2026-11-10'
 
 /**
- * Credit for the backdrop (public/background.jpg), shown in every footer. Set it
+ * Credit for the backdrop (src/assets/backdrop/source.jpg), shown in every footer. Set it
  * to null for an image that needs no credit.
  */
 export const BACKDROP_CREDIT: { text: string; href: string } | null = {

@@ -201,6 +201,26 @@ Once the new site is live on the domain, delete the old resource group (Static W
 Standard plan, Cosmos DB, Storage, Key Vault, Web PubSub) so it stops billing. The new deployment
 runs on the Free plan; nothing here needs Standard.
 
+### 6. Email from your own domain
+
+Account emails (confirming an address, password resets) come from `no-reply@karsusinitiative.com`,
+and replies go to `karsus.support@gmail.com` (`CONTACT_EMAIL` in `src/lib/legal.ts`). The template
+creates the domain and the `no-reply` sender in Communication Services; Azure then lists the DNS
+records it needs (portal: the email service → Provision domains → karsusinitiative.com). In
+Cloudflare DNS, all **DNS only** (grey cloud):
+
+| Type | Name | Content |
+|---|---|---|
+| TXT | `@` | `ms-domain-verification=…` (from Azure) |
+| TXT | `@` | `v=spf1 include:spf.protection.outlook.com -all` (only one SPF record per domain) |
+| CNAME | `selector1-azurecomm-prod-net._domainkey` | `selector1-azurecomm-prod-net._domainkey.azurecomm.net` |
+| CNAME | `selector2-azurecomm-prod-net._domainkey` | `selector2-azurecomm-prod-net._domainkey.azurecomm.net` |
+| TXT | `_dmarc` | `v=DMARC1; p=quarantine; adkim=s; aspf=s` |
+| TXT | `default._bimi` | `v=BIMI1; l=https://karsusinitiative.com/bimi.svg;` |
+
+DMARC tells inboxes to trust only mail Azure signs for the domain, which Gmail and Yahoo now
+expect. BIMI points at the emblem (`public/bimi.svg`) for inboxes that show sender logos.
+
 ## Free-tier notes
 
 - **Web PubSub Free** allows 20 connections at once, about two or three tables with a TV and a few

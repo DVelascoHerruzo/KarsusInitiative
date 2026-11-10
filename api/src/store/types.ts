@@ -66,6 +66,17 @@ export interface InviteEntry {
   role: Role
 }
 
+/** An email-verification link: proves the account's owner reads that inbox. */
+export interface VerifyEntry {
+  id: string
+  kind: 'verify'
+  user_id: string
+  /** The address it was sent to, so a link for an old address can't verify a new one. */
+  email: string
+  expires_at: number
+  ttl: number
+}
+
 export interface ResetEntry {
   id: string
   kind: 'reset'
@@ -98,7 +109,7 @@ export interface RateEntry {
   ttl: number
 }
 
-export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry | FoldersEntry | RateEntry
+export type Entry = UserEntry | AliasEntry | ShareEntry | TableEntry | InviteEntry | ResetEntry | PresenceEntry | FoldersEntry | RateEntry | VerifyEntry
 export type EntryOf<K extends Entry['kind']> = Extract<Entry, { kind: K }>
 
 /** Item ids can't contain / \ ? #, so free text is URI-encoded. */
@@ -110,6 +121,7 @@ export const entryId = {
   table: (tableId: string) => `table:${tableId}`,
   invite: (token: string) => `invite:${token}`,
   reset: (tokenHash: string) => `reset:${tokenHash}`,
+  verify: (tokenHash: string) => `verify:${tokenHash}`,
   presence: (encounterId: string) => `presence:${encounterId}`,
   folders: (userId: string) => `folders:${userId}`,
 }

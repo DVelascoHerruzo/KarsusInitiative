@@ -13,7 +13,7 @@
     "STORAGE_CONNECTION_STRING": "",
     "WEBPUBSUB_CONNECTION_STRING": "",
     "ACS_CONNECTION_STRING": "",
-    "MAIL_SENDER": "",
+    "MAIL_SENDER": "no-reply@karsusinitiative.com",
     "GOOGLE_CLIENT_ID": "",
     "GOOGLE_CLIENT_SECRET": ""
   }

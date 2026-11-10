@@ -11,7 +11,7 @@ describe('accounts', () => {
     const { api, user } = await signedUp(app)
     expect(user).toMatchObject({ email: 'dm@example.com', username: 'Dungeon Master' })
 
-    expect((await api('GET', '/api/auth/me')).body).toEqual({ user, google: false })
+    expect((await api('GET', '/api/auth/me')).body).toEqual({ user, google: false, verification: true })
     expect((await api('POST', '/api/auth/signout')).status).toBe(204)
     expect((await api('GET', '/api/auth/me')).body).toMatchObject({ user: null })
   })
@@ -62,8 +62,9 @@ describe('accounts', () => {
     const { api: laptop } = await signedUp(app)
 
     expect((await app.call('POST', '/api/auth/forgot', { body: { email: 'dm@example.com' } })).status).toBe(204)
-    expect(app.mail).toHaveLength(1)
-    const link = /https:\S+/.exec(app.mail[0]!.text)![0]
+    const resets = app.mail.filter((m) => m.subject.includes('Reset'))
+    expect(resets).toHaveLength(1)
+    const link = /https:\S+/.exec(resets[0]!.text)![0]
     expect(link.startsWith(`${ORIGIN}/reset-password?token=`)).toBe(true)
     const token = new URL(link).searchParams.get('token')
 
@@ -148,7 +149,8 @@ describe('Google sign-in', () => {
 
   it('takes over an unproven account for the real owner: the old password and sessions stop working', async () => {
     const app = testApp()
-    const { api: squatter, user } = await signedUp(app)
+    // Someone signed up with an address they never confirmed.
+    const { api: squatter, user } = await signedUp(app, 'dm@example.com', 'Dungeon Master', { verify: false })
 
     const linked = await googleUser(app.s, profile)
     expect(linked.user_id).toBe(user.id)
@@ -160,12 +162,12 @@ describe('Google sign-in', () => {
 
   it('tells the sign-in page whether Google is available, and bounces back when it isn’t', async () => {
     const off = testApp()
-    expect((await off.call('GET', '/api/auth/me')).body).toEqual({ user: null, google: false })
+    expect((await off.call('GET', '/api/auth/me')).body).toEqual({ user: null, google: false, verification: true })
     const res = await off.call('GET', '/api/auth/google?next=/encounters/1')
     expect(res).toMatchObject({ status: 302, headers: { location: '/login?error=google' } })
 
     const on = testApp({ env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret' } })
-    expect((await on.call('GET', '/api/auth/me')).body).toEqual({ user: null, google: true })
+    expect((await on.call('GET', '/api/auth/me')).body).toEqual({ user: null, google: true, verification: true })
   })
 
   it('sends the browser to Google with PKCE and a signed state cookie', async () => {

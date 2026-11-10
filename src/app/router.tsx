@@ -5,6 +5,7 @@ import { Tooltips } from '@/components/ui/Tooltips'
 import { FullScreenLoader } from '@/components/ui/tokens'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { VerifyEmailGate } from '@/features/auth/VerifyEmailGate'
 import NotFound, { RouteError } from '@/pages/NotFoundPage'
 
 // Every page is its own chunk: players opening a share link never download the DM screen.
@@ -22,6 +23,7 @@ const Play = lazy(() => import('@/pages/PlayPage'))
 const Demo = lazy(() => import('@/pages/DemoPage'))
 const DemoPlay = lazy(() => import('@/pages/DemoPlayPage'))
 const Account = lazy(() => import('@/pages/AccountPage'))
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmailPage'))
 const Privacy = lazy(() => import('@/pages/LegalPage').then((m) => ({ default: m.PrivacyPage })))
 const Terms = lazy(() => import('@/pages/LegalPage').then((m) => ({ default: m.TermsPage })))
 
@@ -50,9 +52,10 @@ function RootLayout() {
 
 /** Signed in, home is whichever side of the table you were on last. */
 function Home() {
-  const { user, loading, mode } = useAuth()
+  const { user, loading, mode, needsVerification } = useAuth()
   if (loading) return <FullScreenLoader />
   if (!user) return <Landing />
+  if (needsVerification) return <VerifyEmailGate />
   return mode === 'player' ? <PlayerHome /> : <Dashboard />
 }
 
@@ -78,7 +81,16 @@ export const router = createBrowserRouter([
       { path: '/play/:token', element: <Play /> },
       { path: '/demo', element: <Demo /> },
       { path: '/demo/play', element: <DemoPlay /> },
-      { path: '/account', element: authed(Account) },
+      {
+        path: '/account',
+        // Reachable before confirming: to fix a mistyped email by deleting the account, say.
+        element: (
+          <RequireAuth allowUnverified>
+            <Account />
+          </RequireAuth>
+        ),
+      },
+      { path: '/verify-email', element: <VerifyEmail /> },
       { path: '/privacy', element: <Privacy /> },
       { path: '/terms', element: <Terms /> },
       { path: '*', element: <NotFound /> },

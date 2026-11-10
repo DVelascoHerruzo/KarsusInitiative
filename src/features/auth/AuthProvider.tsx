@@ -10,6 +10,10 @@ interface AuthState {
   loading: boolean
   /** Whether the server offers "Continue with Google". */
   googleSignIn: boolean
+  /** Signed in, but hasn't opened the link in their verification email yet. */
+  needsVerification: boolean
+  /** Asks the server again who's signed in: after confirming the email on another device, say. */
+  refresh: () => Promise<void>
   /** Which side of the table the app opens on. Remembered on the account, so every device agrees. */
   mode: Mode
   setMode: (mode: Mode) => void
@@ -25,19 +29,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(isBackendConfigured)
   const [googleSignIn, setGoogleSignIn] = useState(false)
+  const [verificationRequired, setVerificationRequired] = useState(false)
+
+  /** Asks the server who's signed in. No API reachable (offline, or a local build without it): signed out. */
+  const load = useCallback(
+    () =>
+      api
+        .get<{ user: User | null; google: boolean; verification: boolean }>('auth/me')
+        .then((me) => {
+          setUser(me.user)
+          setGoogleSignIn(me.google)
+          setVerificationRequired(me.verification)
+        })
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false)),
+    [],
+  )
 
   useEffect(() => {
-    if (!isBackendConfigured) return
-    api
-      .get<{ user: User | null; google: boolean }>('auth/me')
-      .then(({ user, google }) => {
-        setUser(user)
-        setGoogleSignIn(google)
-      })
-      // No API reachable (offline, or a local build without it): treat as signed out.
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
-  }, [])
+    if (isBackendConfigured) void load()
+  }, [load])
+
+  const refresh = useCallback(async () => {
+    if (isBackendConfigured) await load()
+  }, [load])
 
   const signedIn = useCallback(
     (next: User) => {
@@ -60,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName: user?.username || user?.email.split('@')[0] || 'Adventurer',
       loading,
       googleSignIn,
+      needsVerification: Boolean(user && verificationRequired && !user.email_verified),
+      refresh,
       mode: user?.mode ?? 'dm',
       setMode,
       signedIn,
@@ -69,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
       },
     }),
-    [user, loading, googleSignIn, setMode, signedIn, qc],
+    [user, loading, googleSignIn, verificationRequired, refresh, setMode, signedIn, qc],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

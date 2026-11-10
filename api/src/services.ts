@@ -1,6 +1,7 @@
 import { EmailClient } from '@azure/communication-email'
 import { BlobServiceClient } from '@azure/storage-blob'
 import { WebPubSubServiceClient } from '@azure/web-pubsub'
+import { CONTACT_EMAIL } from '@/lib/legal'
 import { readConfig, type Config } from './config'
 import { HttpError } from './http'
 import { cosmosStore } from './store/cosmos'
@@ -118,7 +119,13 @@ function acsMail(connectionString: string, sender: string): Mail {
   return {
     async send({ to, subject, text, html }) {
       // Queues the message; delivery continues after we respond.
-      await client.beginSend({ senderAddress: sender, content: { subject, plainText: text, html }, recipients: { to: [{ address: to }] } })
+      // Sent from Azure's address, but replies go to the support inbox.
+      await client.beginSend({
+        senderAddress: sender,
+        content: { subject, plainText: text, html },
+        recipients: { to: [{ address: to }] },
+        ...(CONTACT_EMAIL ? { replyTo: [{ address: CONTACT_EMAIL, displayName: 'Karsus Support' }] } : {}),
+      })
     },
   }
 }
