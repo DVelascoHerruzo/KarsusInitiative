@@ -8,7 +8,7 @@ export const KOFI_URL = 'https://ko-fi.com/barope'
 export const LEGAL_UPDATED = '2026-11-05'
 
 /**
- * Credit for the backdrop (public/background.jpg), shown in every footer. Set it
+ * Credit for the backdrop (src/assets/backdrop/source.jpg), shown in every footer. Set it
  * to null for an image that needs no credit.
  */
 export const BACKDROP_CREDIT: { text: string; href: string } | null = {
