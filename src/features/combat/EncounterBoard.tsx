@@ -180,10 +180,10 @@ export function EncounterBoard({ encounter, actions, playerNames }: EncounterBoa
         </div>
       </section>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* ── Creatures ──────────────────────────────────────────── */}
         <section aria-labelledby="creatures-heading">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 id="creatures-heading" className="font-body text-lg tracking-widest text-dnd-parchment uppercase">
               Creatures <span className="text-sm text-dnd-muted">({ordered.length})</span>
             </h2>

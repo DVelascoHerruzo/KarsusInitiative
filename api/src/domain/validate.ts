@@ -131,7 +131,7 @@ function slots(v: unknown, field: string) {
 }
 
 /** A whole sheet: the form always sends every part, so nothing here is partial. */
-export function sheet(v: unknown): CharacterSheet {
+function sheet(v: unknown): CharacterSheet {
   const s = object(v, 'Character sheet')
   const scores = object(s.abilities, 'Ability scores')
   const skills = object(s.skills ?? {}, 'Skills')
@@ -170,7 +170,7 @@ export function sheet(v: unknown): CharacterSheet {
 
 export const MAX_CREATURES = 200
 
-export function conditions(v: unknown): Condition[] {
+function conditions(v: unknown): Condition[] {
   if (!Array.isArray(v)) return bad('Conditions must be a list')
   if (v.length > 40) return bad('A creature can have at most 40 conditions')
   return v.map((c): Condition => {

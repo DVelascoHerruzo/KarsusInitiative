@@ -51,7 +51,7 @@ export function CharacterSheetView({ character: c, onSlots, actions }: Character
             {[sheet.species, classSummary(sheet.classes) || null, sheet.background].filter(Boolean).join(' · ') || 'No class or species yet'}
           </p>
           {sheet.source_url && (
-            <a href={sheet.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-body text-[11px] tracking-wider text-dnd-muted hover:text-dnd-jade">
+            <a href={sheet.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-body text-[0.6875rem] tracking-wider text-dnd-muted hover:text-dnd-jade">
               On D&D Beyond <ExternalLink className="h-3 w-3" />
             </a>
           )}
@@ -179,7 +179,7 @@ function SectionTitle({ id, aside, children }: { id: string; aside?: string; chi
 function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
   return (
     <div className="dnd-card px-3 pt-2 pb-2.5 text-center">
-      <dt className="font-body text-[10px] tracking-widest text-dnd-muted uppercase">{label}</dt>
+      <dt className="font-body text-[0.625rem] tracking-widest text-dnd-muted uppercase">{label}</dt>
       <dd className="mt-1 font-display text-2xl text-dnd-parchment">
         {value}
         {sub && <span className="ml-1 font-body text-xs text-dnd-muted">{sub}</span>}
@@ -193,7 +193,7 @@ function SlotPips({ label, slots, onChange }: { label: string; slots: SpellSlots
   const left = slots.max - slots.used
   return (
     <li>
-      <p className="mb-1.5 font-body text-[11px] tracking-widest text-dnd-muted uppercase">
+      <p className="mb-1.5 font-body text-[0.6875rem] tracking-widest text-dnd-muted uppercase">
         {label} <span className="text-dnd-parchment">{left}/{slots.max}</span>
       </p>
       <div className="flex gap-1.5">

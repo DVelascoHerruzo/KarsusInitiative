@@ -13,7 +13,7 @@ import { entryId, type UserEntry } from '../store/types'
 export const SESSION_COOKIE = 'karsus_session'
 const SESSION_DAYS = 365
 
-export function signingKey(s: Services): Uint8Array {
+function signingKey(s: Services): Uint8Array {
   const secret = s.config.sessionSecret
   if (!secret || secret.length < 32) throw new HttpError(503, 'Accounts aren’t configured on this server')
   return new TextEncoder().encode(secret)
@@ -86,4 +86,5 @@ export const publicUser = (u: UserEntry): User => ({
   mode: u.mode ?? 'dm',
   sign_in: { password: u.password_hash !== null, google: u.google_sub !== null },
   email_verified: u.email_verified,
+  verification_sent_at: u.verify_sent_at ?? null,
 })

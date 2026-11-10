@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { AnimatePresence, motion, type Variants } from 'motion/react'
+import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/react'
+import { useDisplay } from '@/lib/display'
 import { ChevronLeft, ChevronUp, Dices, Expand, Heart, Plus, Shield, Shrink, Sword, Undo2, User } from 'lucide-react'
 import { HealthTag, HpBar, StatusPill, Token } from '@/components/ui/tokens'
 import { healthBand, nextUp, playerTurn, turnDirection } from '@/lib/combat'
@@ -88,7 +89,17 @@ interface DisplayViewProps {
  * initiative order on the right, round and turn across the top. Monsters show
  * how hurt they look, never their numbers.
  */
-export function DisplayView({ encounter: e, mine = [], characters = [], onHp, onConditions, onSlots, back, label = 'Player View · Live sync' }: DisplayViewProps) {
+/** The player screen. Its animations follow the Reduce motion display setting. */
+export function DisplayView(props: DisplayViewProps) {
+  const [{ calm }] = useDisplay()
+  return (
+    <MotionConfig reducedMotion={calm ? 'always' : 'never'}>
+      <DisplayScreen {...props} />
+    </MotionConfig>
+  )
+}
+
+function DisplayScreen({ encounter: e, mine = [], characters = [], onHp, onConditions, onSlots, back, label = 'Player View · Live sync' }: DisplayViewProps) {
   const [fullscreen, toggleFullscreen] = useFullscreen()
   useWakeLock()
 
@@ -141,7 +152,7 @@ export function DisplayView({ encounter: e, mine = [], characters = [], onHp, on
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-dnd-border/40 bg-black/50 px-4 py-3 backdrop-blur-sm sm:px-6">
         <div className="min-w-0 flex-1">
           {back && (
-            <Link to={back.to} className="mb-0.5 flex max-w-full items-center gap-1 font-body text-[11px] tracking-widest text-dnd-muted uppercase hover:text-dnd-parchment">
+            <Link to={back.to} className="mb-0.5 flex max-w-full items-center gap-1 font-body text-[0.6875rem] tracking-widest text-dnd-muted uppercase hover:text-dnd-parchment">
               <ChevronLeft className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{back.label}</span>
             </Link>
           )}
@@ -151,11 +162,11 @@ export function DisplayView({ encounter: e, mine = [], characters = [], onHp, on
 
         <div className="flex items-center gap-8">
           <div className="text-center">
-            <p className="font-body text-[10px] tracking-widest text-dnd-muted">ROUND</p>
+            <p className="font-body text-[0.625rem] tracking-widest text-dnd-muted">ROUND</p>
             <p className="font-display text-3xl leading-none text-dnd-amber">{e.round}</p>
           </div>
           <div className="text-center">
-            <p className="font-body text-[10px] tracking-widest text-dnd-muted">TURN</p>
+            <p className="font-body text-[0.625rem] tracking-widest text-dnd-muted">TURN</p>
             <p className="font-display text-3xl leading-none text-dnd-parchment">
               {active ? activeIdx + 1 : '–'}
               <span className="text-sm text-dnd-muted">/{sorted.length}</span>
@@ -164,7 +175,7 @@ export function DisplayView({ encounter: e, mine = [], characters = [], onHp, on
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3">
-          <p className="hidden font-ui text-[11px] text-dnd-muted/50 italic sm:block">{label}</p>
+          <p className="hidden font-ui text-[0.6875rem] text-dnd-muted/50 italic sm:block">{label}</p>
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -264,12 +275,12 @@ export function DisplayView({ encounter: e, mine = [], characters = [], onHp, on
 
           {next && (
             <div className="border-t border-dnd-border/30 bg-black/20 px-5 py-3">
-              <p className="mb-2 font-body text-[10px] tracking-widest text-dnd-muted uppercase">Up Next</p>
+              <p className="mb-2 font-body text-[0.625rem] tracking-widest text-dnd-muted uppercase">Up Next</p>
               <div className="flex items-center gap-2">
                 <Token name={next.name} src={next.image_url} isPlayer={next.is_player} size={32} />
                 <div>
                   <p className="font-body text-sm text-dnd-parchment">{next.name}</p>
-                  <p className="text-[10px] text-dnd-muted">Initiative {next.initiative}</p>
+                  <p className="text-[0.625rem] text-dnd-muted">Initiative {next.initiative}</p>
                 </div>
                 <ChevronUp className="ml-auto h-4 w-4 text-dnd-muted" />
               </div>
@@ -324,17 +335,17 @@ function ActiveCard({ creature: c, own, acting, onBack }: ActiveCardProps) {
         {acting ? (
           <div className="mb-2 flex items-center gap-2 lg:mb-3">
             <div className="h-2 w-2 animate-pulse rounded-full bg-dnd-jade" />
-            <span className="font-body text-[10px] tracking-[0.35em] text-dnd-jade uppercase">{own ? 'Your Turn' : 'Active Turn'}</span>
+            <span className="font-body text-[0.625rem] tracking-[0.35em] text-dnd-jade uppercase">{own ? 'Your Turn' : 'Active Turn'}</span>
             <div className="h-2 w-2 animate-pulse rounded-full bg-dnd-jade" />
           </div>
         ) : (
           <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 lg:mb-3">
-            <span className="font-body text-[10px] tracking-[0.35em] text-dnd-muted uppercase">Looking at</span>
+            <span className="font-body text-[0.625rem] tracking-[0.35em] text-dnd-muted uppercase">Looking at</span>
             {onBack && (
               <button
                 type="button"
                 onClick={onBack}
-                className="inline-flex items-center gap-1 rounded border border-dnd-gold/50 px-1.5 py-0.5 font-body text-[10px] tracking-widest text-dnd-gold uppercase hover:bg-dnd-gold/10"
+                className="inline-flex items-center gap-1 rounded border border-dnd-gold/50 px-1.5 py-0.5 font-body text-[0.625rem] tracking-widest text-dnd-gold uppercase hover:bg-dnd-gold/10"
               >
                 <Undo2 className="h-3 w-3" /> Back to the turn
               </button>
@@ -345,7 +356,7 @@ function ActiveCard({ creature: c, own, acting, onBack }: ActiveCardProps) {
         <h2 className="line-clamp-3 font-display text-xl leading-tight wrap-anywhere text-dnd-parchment sm:text-3xl lg:text-4xl" style={{ textShadow: '0 2px 16px rgba(0,0,0,0.9)' }}>
           {c.name}
         </h2>
-        {c.is_player && <span className="font-body text-[10px] tracking-widest text-dnd-jade lg:text-xs">{own ? 'YOUR CHARACTER' : 'PLAYER CHARACTER'}</span>}
+        {c.is_player && <span className="font-body text-[0.625rem] tracking-widest text-dnd-jade lg:text-xs">{own ? 'YOUR CHARACTER' : 'PLAYER CHARACTER'}</span>}
 
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 lg:mt-3">
           {c.max_hp !== null ? (
@@ -444,7 +455,7 @@ function InitiativeRow({ creature: c, rank, isActive, isViewed, onLook, own, onH
           >
             {c.name}
           </button>
-          {own && <span className="shrink-0 rounded border border-dnd-jade/50 px-1.5 text-[10px] tracking-widest text-dnd-jade uppercase">you</span>}
+          {own && <span className="shrink-0 rounded border border-dnd-jade/50 px-1.5 text-[0.625rem] tracking-widest text-dnd-jade uppercase">you</span>}
           {statuses.map((x) => (
             <StatusPill key={x.key} condition={x} />
           ))}
@@ -456,7 +467,7 @@ function InitiativeRow({ creature: c, rank, isActive, isViewed, onLook, own, onH
                 onConditions()
               }}
               aria-label={`Conditions for ${c.name}`}
-              className="inline-flex h-5 items-center gap-0.5 rounded border border-dnd-border/50 px-1.5 text-[10px] text-dnd-muted hover:text-dnd-parchment"
+              className="inline-flex h-5 items-center gap-0.5 rounded border border-dnd-border/50 px-1.5 text-[0.625rem] text-dnd-muted hover:text-dnd-parchment"
             >
               <Plus className="h-3 w-3" /> condition
             </button>
@@ -474,7 +485,7 @@ function InitiativeRow({ creature: c, rank, isActive, isViewed, onLook, own, onH
               className="mt-1 flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-dnd-surface/60"
             >
               <HpBar current={c.current_hp} max={c.max_hp} temp={c.temp_hp} className="h-1.5 flex-1" />
-              <span className="text-[11px] whitespace-nowrap text-dnd-parchment">
+              <span className="text-[0.6875rem] whitespace-nowrap text-dnd-parchment">
                 {c.current_hp}/{c.max_hp}
                 {c.temp_hp > 0 && <span className="text-sky-300"> +{c.temp_hp}</span>}
               </span>
@@ -482,7 +493,7 @@ function InitiativeRow({ creature: c, rank, isActive, isViewed, onLook, own, onH
           ) : (
             <div className="mt-1 flex items-center gap-2">
               <HpBar current={c.current_hp} max={c.max_hp} temp={c.temp_hp} className="h-1 flex-1" />
-              <span className="text-[10px] whitespace-nowrap text-dnd-muted">
+              <span className="text-[0.625rem] whitespace-nowrap text-dnd-muted">
                 {c.current_hp}/{c.max_hp}
               </span>
             </div>

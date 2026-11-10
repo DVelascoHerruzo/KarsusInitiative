@@ -14,6 +14,8 @@ interface AuthState {
   needsVerification: boolean
   /** Asks the server again who's signed in: after confirming the email on another device, say. */
   refresh: () => Promise<void>
+  /** Takes a newer copy of the same account from the server (no cache clearing, unlike signedIn). */
+  updateUser: (user: User) => void
   /** Which side of the table the app opens on. Remembered on the account, so every device agrees. */
   mode: Mode
   setMode: (mode: Mode) => void
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       googleSignIn,
       needsVerification: Boolean(user && verificationRequired && !user.email_verified),
       refresh,
+      updateUser: setUser,
       mode: user?.mode ?? 'dm',
       setMode,
       signedIn,

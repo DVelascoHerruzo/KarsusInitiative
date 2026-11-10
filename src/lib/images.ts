@@ -9,7 +9,7 @@ const MAX_INPUT_BYTES = 20 * 1024 * 1024
  * Downscales in the browser and re-encodes as WebP before upload, so a 6 MB phone
  * photo lands as ~150 KB and Blob Storage stays nearly free.
  */
-export async function compressImage(file: File, kind: ImageKind): Promise<Blob> {
+async function compressImage(file: File, kind: ImageKind): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('That file isn’t an image')
   if (file.size > MAX_INPUT_BYTES) throw new Error('Images must be under 20 MB')
 

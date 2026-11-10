@@ -27,7 +27,7 @@ function origin(s: Services, req: ApiRequest) {
 const callbackUrl = (s: Services, req: ApiRequest) => `${origin(s, req)}/api/auth/google/callback`
 
 /** Only same-site paths, so the redirect can't be pointed at another site. */
-export function safeNext(next: unknown): string {
+function safeNext(next: unknown): string {
   return typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : '/'
 }
 

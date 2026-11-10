@@ -8,7 +8,7 @@ import type { Services } from './services'
 // Cloudflare's rate-limit rule sits in front of this; this is the layer that
 // still holds if someone reaches the Azure address directly.
 
-export interface Limit {
+interface Limit {
   /** Requests allowed per window. */
   max: number
   windowSeconds: number

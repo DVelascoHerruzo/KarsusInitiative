@@ -147,8 +147,8 @@ export default function CreatureRow({
       >
         {c.name}
       </button>
-      {isNext && !isActive && <span className="shrink-0 font-ui text-[10px] text-dnd-muted italic">next</span>}
-      {playedBy && <span className="hidden shrink-0 truncate font-ui text-[10px] text-dnd-jade/80 italic lg:inline">played by {playedBy}</span>}
+      {isNext && !isActive && <span className="shrink-0 font-ui text-[0.625rem] text-dnd-muted italic">next</span>}
+      {playedBy && <span className="hidden shrink-0 truncate font-ui text-[0.625rem] text-dnd-jade/80 italic lg:inline">played by {playedBy}</span>}
     </div>
   )
 
@@ -243,7 +243,7 @@ export default function CreatureRow({
         aria-label={`${c.name}: ${c.current_hp} of ${c.max_hp} hit points. Change HP`}
         className="w-24 shrink-0 rounded px-1.5 py-1 text-left transition-colors hover:bg-dnd-surface/60"
       >
-        <span className="flex items-center justify-between font-body text-[11px]">
+        <span className="flex items-center justify-between font-body text-[0.6875rem]">
           <span className="flex items-center gap-1 text-dnd-parchment">
             <Heart className="h-3 w-3 text-red-400" />
             {c.current_hp}
@@ -254,7 +254,7 @@ export default function CreatureRow({
         <HpBar current={c.current_hp} max={c.max_hp} temp={c.temp_hp} className="mt-1 h-1" />
       </button>
     ) : (
-      <button type="button" onClick={onEdit} className="w-24 shrink-0 px-1.5 text-left font-ui text-[11px] text-dnd-muted italic hover:text-dnd-parchment">
+      <button type="button" onClick={onEdit} className="w-24 shrink-0 px-1.5 text-left font-ui text-[0.6875rem] text-dnd-muted italic hover:text-dnd-parchment">
         no HP
       </button>
     )
@@ -313,7 +313,7 @@ export default function CreatureRow({
           {statusTags}
         </div>
         {hpCell}
-        <div className="flex w-full items-center gap-2 pl-10 sm:w-auto sm:pl-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex w-full flex-wrap items-center gap-2 pl-10 sm:w-auto sm:pl-0" onClick={(e) => e.stopPropagation()}>
           {initiativeInput}
           {acInput}
           {tools}
