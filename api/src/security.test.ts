@@ -1,4 +1,4 @@
-import { signedUp, testApp } from './test/harness'
+import { signedUp, testApp, verifyToken } from './test/harness'
 
 const PASSWORD = 'correct horse battery'
 
@@ -24,7 +24,7 @@ describe('rate limits', () => {
       statuses.push((await app.call('POST', '/api/auth/forgot', { body: { email: 'dm@example.com' }, headers: { 'x-azure-clientip': `10.0.0.${i}` } })).status)
     }
     expect(statuses).toEqual([204, 204, 204, 429])
-    expect(app.mail).toHaveLength(3)
+    expect(app.mail.filter((m) => m.subject.includes('Reset'))).toHaveLength(3)
   })
 
   it('never stores the raw address or email it counts', async () => {
@@ -128,5 +128,60 @@ describe('caching', () => {
     await api('PATCH', `/api/encounters/${id}`, { body: { title: 'Ambush at dusk' } })
     expect((await api('GET', `/api/encounters/${id}`, { headers: { 'if-none-match': first.headers.etag! } })).status).toBe(200)
     expect((await api('GET', '/api/auth/me')).headers['cache-control']).toBe('no-store')
+  })
+})
+
+describe('email verification', () => {
+  it('emails a link on sign-up, and keeps the account to its own settings until it’s opened', async () => {
+    const app = testApp()
+    const { api, user } = await signedUp(app, 'new@example.com', 'Newcomer', { verify: false })
+    expect(user.email_verified).toBe(false)
+    const mail = app.mail.find((m) => m.to === 'new@example.com')!
+    expect(mail.subject).toMatch(/Confirm your email/)
+    expect(mail.text).toContain(`${'https://karsus.test'}/verify-email?token=`)
+
+    const blocked = await api('POST', '/api/encounters', { body: { title: 'Too soon' } })
+    expect(blocked).toMatchObject({ status: 403, body: { error: expect.stringMatching(/Confirm your email/) } })
+    // Their own account still works: settings, export, deletion.
+    expect((await api('PATCH', '/api/auth/me', { body: { mode: 'player' } })).status).toBe(200)
+    expect((await api('GET', '/api/auth/export')).status).toBe(200)
+
+    const verified = await api('POST', '/api/auth/verify', { body: { token: verifyToken(app, 'new@example.com') } })
+    expect(verified.body.user.email_verified).toBe(true)
+    expect((await api('POST', '/api/encounters', { body: { title: 'Now' } })).status).toBe(201)
+  })
+
+  it('works once, from any device, and signs that device in', async () => {
+    const app = testApp()
+    await signedUp(app, 'new@example.com', 'Newcomer', { verify: false })
+    const token = verifyToken(app, 'new@example.com')
+    const phone = app.client()
+    expect((await phone('POST', '/api/auth/verify', { body: { token } })).status).toBe(200)
+    expect((await phone('GET', '/api/auth/me')).body.user.email).toBe('new@example.com')
+    expect((await phone('POST', '/api/auth/verify', { body: { token } })).status).toBe(400)
+    expect((await phone('POST', '/api/auth/verify', { body: { token: 'made-up' } })).status).toBe(400)
+  })
+
+  it('sends a fresh link on request, a few times an hour at most', async () => {
+    const app = testApp()
+    const { api } = await signedUp(app, 'new@example.com', 'Newcomer', { verify: false })
+    const statuses = []
+    for (let i = 0; i < 5; i++) statuses.push((await api('POST', '/api/auth/verify/resend')).status)
+    expect(statuses).toEqual([204, 204, 204, 204, 429])
+    expect(app.mail.filter((m) => m.to === 'new@example.com')).toHaveLength(5)
+  })
+
+  it('isn’t required where the server can’t send email', async () => {
+    const app = testApp()
+    app.s.mail = null
+    const res = await app.call('POST', '/api/auth/signup', { body: { email: 'a@b.co', username: 'A', password: PASSWORD } })
+    const cookie = `karsus_session=${res.cookies[0]!.value}`
+    expect((await app.call('POST', '/api/encounters', { body: { title: 'Fine' }, cookie, origin: 'https://karsus.test' })).status).toBe(201)
+  })
+
+  it('replies to Karsus emails go to the support inbox, and every email names it', async () => {
+    const app = testApp()
+    await signedUp(app, 'new@example.com', 'Newcomer', { verify: false })
+    expect(app.mail[0]!.text).toContain('karsus.support@gmail.com')
   })
 })

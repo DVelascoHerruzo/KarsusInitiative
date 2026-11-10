@@ -46,7 +46,7 @@ export function PrivacyPage() {
             <b>What you make:</b> encounters, campaigns, creatures, character sheets, notes, folders, and the images you upload.
           </li>
           <li>
-            <b>Security records:</b> failed sign-in counts, password reset tokens (deleted after an hour), and rate-limit counters. Counters are keyed by a one-way hash
+            <b>Security records:</b> whether you’ve confirmed your email, failed sign-in counts, email confirmation and password reset links (deleted after 48 hours and one hour), and rate-limit counters. Counters are keyed by a one-way hash
             of your IP address or email, never the address itself, and are deleted within about two hours.
           </li>
           <li>
@@ -70,7 +70,7 @@ export function PrivacyPage() {
         <ul>
           <li>
             <b>Microsoft Azure</b> runs the site and stores the data: the database in Sweden, images in Ireland, and the website and its API in the United States
-            (East US 2), under Microsoft’s EU Standard Contractual Clauses. Microsoft also sends password reset emails.
+            (East US 2), under Microsoft’s EU Standard Contractual Clauses. Microsoft also sends our account emails: confirming your address, and password resets.
           </li>
           <li>
             <b>Cloudflare</b> carries traffic to the site and protects it from attacks.

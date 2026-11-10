@@ -1,11 +1,43 @@
 /// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+/**
+ * The browser only finds fonts and the backdrop after it has downloaded the CSS
+ * (and, for the landing image, the JavaScript). Listing them in the page's head
+ * starts those downloads at once instead of a second or more later.
+ */
+function preloadFirstPaint(): Plugin {
+  const FONTS = [/cinzel-latin-400-normal-.*.woff2$/, /cinzel-decorative-latin-400-normal-.*.woff2$/, /im-fell-english-latin-400-(normal|italic)-.*.woff2$/]
+  const BACKDROP = /backdrop-(640|1280|1920)-.*.avif$/
+  return {
+    name: 'preload-first-paint',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        const files = Object.keys(ctx.bundle ?? {})
+        const fonts = files.filter((f) => FONTS.some((re) => re.test(f)))
+        const backdrop = files
+          .filter((f) => BACKDROP.test(f))
+          .map((f) => `/${f} ${BACKDROP.exec(f)![1]}w`)
+          .join(', ')
+        return [
+          ...fonts.map((f) => ({ tag: 'link', attrs: { rel: 'preload', as: 'font', type: 'font/woff2', href: `/${f}`, crossorigin: '' }, injectTo: 'head' as const })),
+          // Same sizes and srcset as the landing picture, so the browser reuses this download.
+          ...(backdrop
+            ? [{ tag: 'link', attrs: { rel: 'preload', as: 'image', type: 'image/avif', imagesrcset: backdrop, imagesizes: '100vw', fetchpriority: 'high' }, injectTo: 'head' as const }]
+            : []),
+        ]
+      },
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), preloadFirstPaint()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
