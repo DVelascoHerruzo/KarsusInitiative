@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type HotkeyMap = Record<string, (e: KeyboardEvent) => void>
+type HotkeyMap = Record<string, (e: KeyboardEvent) => void>
 
 const TYPING = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
 const ACTIVATES_ON_KEY = 'button, a[href], summary, [role="button"], [role="switch"]'

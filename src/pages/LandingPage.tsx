@@ -88,7 +88,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <LegalFooter className="border-t border-dnd-border/30 px-6 py-3 text-center font-ui text-[11px] leading-relaxed text-white/60" />
+        <LegalFooter className="border-t border-dnd-border/30 px-6 py-3 text-center font-ui text-[0.6875rem] leading-relaxed text-white/60" />
       </footer>
     </div>
   )

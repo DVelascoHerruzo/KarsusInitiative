@@ -2,11 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router/dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MotionConfig } from 'motion/react'
 import { AuthProvider } from '@/features/auth/AuthProvider'
-import { NotFoundError } from '@/features/encounters/queries'
-import { ApiError } from '@/lib/api'
+import { ApiError, NotFoundError } from '@/lib/api'
 import { applyTheme, savedTheme } from '@/lib/theme'
+import { applyDisplay, savedDisplay } from '@/lib/display'
 import { router } from '@/app/router'
 import '@/styles/index.css'
 
@@ -22,15 +21,13 @@ const queryClient = new QueryClient({
 
 // Before the first render, so the page never flashes in the wrong colours.
 applyTheme(savedTheme())
+applyDisplay(savedDisplay())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* Honour the OS "reduce motion" setting for every animation. */}
-        <MotionConfig reducedMotion="user">
-          <RouterProvider router={router} />
-        </MotionConfig>
+        <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

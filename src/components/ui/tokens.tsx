@@ -44,7 +44,7 @@ export function Token({ name, src, isPlayer, size = 40, active, dead, initiative
       {initiative !== undefined && (
         <span
           className={cn(
-            'absolute -right-1 -bottom-1 flex min-w-5 items-center justify-center rounded-full border px-1 text-[10px] leading-5 font-bold',
+            'absolute -right-1 -bottom-1 flex min-w-5 items-center justify-center rounded-full border px-1 text-[0.625rem] leading-5 font-bold',
             active ? 'border-dnd-gold bg-dnd-gold text-black' : 'border-dnd-dark bg-dnd-crimson text-white',
           )}
         >
@@ -55,7 +55,10 @@ export function Token({ name, src, isPlayer, size = 40, active, dead, initiative
   )
 }
 
-/** Green, then yellow, then red as HP drops. Temporary HP shows as a pale band at the end. */
+/**
+ * Green, then yellow, then red as HP drops (other colours in a colour-vision mode,
+ * where critical is striped too). Temporary HP shows as a pale band at the end.
+ */
 export function HpBar({ current, max, temp = 0, className }: { current: number | null; max: number | null; temp?: number; className?: string }) {
   if (current === null || max === null || max <= 0) return null
   const pct = Math.max(0, Math.min(100, (current / max) * 100))
@@ -63,10 +66,11 @@ export function HpBar({ current, max, temp = 0, className }: { current: number |
   return (
     <div className={cn('flex h-1.5 w-full overflow-hidden rounded-full bg-dnd-dark', className)} aria-hidden>
       <div
-        className={cn('h-full transition-all duration-500', pct > 60 ? 'bg-emerald-500' : pct > 30 ? 'bg-yellow-500' : 'bg-red-500')}
+        data-hp={pct > 60 ? 'healthy' : pct > 30 ? 'hurt' : 'critical'}
+        className={cn('h-full transition-all duration-500', pct > 60 ? 'bg-hp-bar-healthy' : pct > 30 ? 'bg-hp-bar-hurt' : 'bg-hp-bar-critical')}
         style={{ width: `${pct}%` }}
       />
-      {tempPct > 0 && <div className="h-full bg-sky-300/80" style={{ width: `${tempPct}%` }} />}
+      {tempPct > 0 && <div className="h-full bg-hp-bar-temp/80" style={{ width: `${tempPct}%` }} />}
     </div>
   )
 }
@@ -106,7 +110,7 @@ export function StatusPill({ condition, onRemove, size = 'sm', className, ...pro
       title={def.summary}
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded border leading-tight',
-        size === 'sm' ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-sm',
+        size === 'sm' ? 'px-1.5 py-px text-[0.625rem]' : 'px-2 py-0.5 text-sm',
         pillColor(condition.key),
         className,
       )}
@@ -124,16 +128,16 @@ export function StatusPill({ condition, onRemove, size = 'sm', className, ...pro
 }
 
 const HEALTH_COLOR: Record<HealthBand, string> = {
-  healthy: 'text-emerald-400 border-emerald-700/50 bg-emerald-900/30',
-  wounded: 'text-lime-300 border-lime-700/50 bg-lime-900/30',
-  bloodied: 'text-yellow-300 border-yellow-700/50 bg-yellow-900/30',
-  critical: 'text-red-300 border-red-700/50 bg-red-900/30',
-  down: 'text-gray-400 border-gray-700/50 bg-gray-900/30',
+  healthy: 'text-hp-healthy border-hp-healthy/35 bg-hp-healthy/10',
+  wounded: 'text-hp-wounded border-hp-wounded/35 bg-hp-wounded/10',
+  bloodied: 'text-hp-bloodied border-hp-bloodied/35 bg-hp-bloodied/10',
+  critical: 'text-hp-critical border-hp-critical/35 bg-hp-critical/10',
+  down: 'text-hp-down border-hp-down/35 bg-hp-down/10',
 }
 
 /** How hurt a monster looks, for screens that mustn't show its HP. */
 export function HealthTag({ band, className }: { band: HealthBand; className?: string }) {
-  return <span className={cn('rounded border px-1.5 py-0.5 text-[11px]', HEALTH_COLOR[band], className)}>{HEALTH_LABEL[band]}</span>
+  return <span className={cn('rounded border px-1.5 py-0.5 text-[0.6875rem]', HEALTH_COLOR[band], className)}>{HEALTH_LABEL[band]}</span>
 }
 
 export function FullScreenLoader({ label = 'Loading…' }: { label?: string }) {

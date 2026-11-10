@@ -9,19 +9,19 @@ export const cryptoRoll: RandomInt = (sides) => {
   return (buf[0]! % sides) + 1
 }
 
-export interface DiceTerm {
+interface DiceTerm {
   kind: 'dice'
   sign: 1 | -1
   count: number
   sides: number
   keep?: { mode: 'h' | 'l'; n: number }
 }
-export interface FlatTerm {
+interface FlatTerm {
   kind: 'flat'
   sign: 1 | -1
   value: number
 }
-export type Term = DiceTerm | FlatTerm
+type Term = DiceTerm | FlatTerm
 
 export interface RolledTerm {
   term: Term
@@ -103,7 +103,7 @@ export function rollDice(notation: string, random: RandomInt = cryptoRoll): Roll
   }
 }
 
-export function formatTerms(terms: readonly Term[]): string {
+function formatTerms(terms: readonly Term[]): string {
   return terms
     .map((t, i) => {
       const sign = t.sign === -1 ? '−' : i === 0 ? '' : '+'

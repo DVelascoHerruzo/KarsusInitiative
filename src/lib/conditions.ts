@@ -1,8 +1,8 @@
 import type { Condition } from './types'
 
-export type ConditionTone = 'danger' | 'control' | 'sense' | 'buff' | 'neutral'
+type ConditionTone = 'danger' | 'control' | 'sense' | 'buff' | 'neutral'
 
-export interface ConditionDef {
+interface ConditionDef {
   key: string
   label: string
   tone: ConditionTone

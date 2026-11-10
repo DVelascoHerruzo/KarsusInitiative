@@ -32,11 +32,11 @@ interface SceneCardProps {
 export function SceneCard({ to, title, description, background, strip, creatures, tags = [], tools, action, glow = 'teal', live, onPrefetch }: SceneCardProps) {
   const labels = (
     <>
-      <span className={cn('rounded bg-dnd-black/50 px-2 py-0.5 font-body text-[10px] tracking-widest backdrop-blur-sm', live ? 'text-dnd-jade' : 'text-dnd-amber/80')}>
+      <span className={cn('rounded bg-dnd-black/50 px-2 py-0.5 font-body text-[0.625rem] tracking-widest backdrop-blur-sm', live ? 'text-dnd-jade' : 'text-dnd-amber/80')}>
         {strip}
       </span>
       {tags.map((t) => (
-        <span key={t} className="rounded border border-dnd-jade/40 bg-dnd-black/60 px-1.5 py-0.5 font-body text-[10px] tracking-widest text-dnd-jade uppercase backdrop-blur-sm">
+        <span key={t} className="rounded border border-dnd-jade/40 bg-dnd-black/60 px-1.5 py-0.5 font-body text-[0.625rem] tracking-widest text-dnd-jade uppercase backdrop-blur-sm">
           {t}
         </span>
       ))}
@@ -86,7 +86,7 @@ export function SceneCard({ to, title, description, background, strip, creatures
               ),
             )}
             {creatures.length > 5 && (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dnd-card bg-dnd-surface text-[9px] text-dnd-muted">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dnd-card bg-dnd-surface text-[0.5625rem] text-dnd-muted">
                 +{creatures.length - 5}
               </div>
             )}

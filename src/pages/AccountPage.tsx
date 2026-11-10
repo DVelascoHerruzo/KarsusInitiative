@@ -1,14 +1,15 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { Download, KeyRound, LogOut, ShieldCheck, Trash2 } from 'lucide-react'
+import { Download, KeyRound, LogOut, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { DisplaySettings } from '@/components/ui/DisplaySettings'
 import Layout, { PageHeader } from '@/components/ui/Layout'
 import Modal from '@/components/ui/Modal'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { api } from '@/lib/api'
 import type { User } from '@/lib/types'
 
-/** Looking after your account: password, devices, your data, and leaving for good. */
+/** Looking after your account: how Karsus looks, password, devices, your data, and leaving for good. */
 export default function AccountPage() {
   const { user, signedIn } = useAuth()
   if (!user) return null
@@ -17,6 +18,9 @@ export default function AccountPage() {
       <title>Account &amp; Security · Karsus</title>
       <div className="mx-auto max-w-2xl space-y-6">
         <PageHeader back={{ to: '/', label: 'Back' }} eyebrow={user.email} title="Account & Security" />
+        <Section icon={<SlidersHorizontal className="h-5 w-5 text-dnd-jade" />} title="Display">
+          <DisplaySettings />
+        </Section>
         <PasswordSection user={user} onSaved={signedIn} />
         <DevicesSection />
         <DataSection />

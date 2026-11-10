@@ -4,7 +4,7 @@ import type { Condition, Creature, CreaturePatch, HealthBand, NewCreature } from
 type Orderable = Pick<Creature, 'id' | 'initiative' | 'initiative_bonus' | 'created_at'>
 
 /** Turn order: initiative, then initiative bonus (the usual 5e tiebreak), then insertion order. */
-export function compareInitiative(a: Orderable, b: Orderable): number {
+function compareInitiative(a: Orderable, b: Orderable): number {
   return (
     b.initiative - a.initiative ||
     b.initiative_bonus - a.initiative_bonus ||
@@ -19,7 +19,7 @@ export function sortByInitiative<T extends Orderable>(creatures: readonly T[]): 
 
 type TurnCreature = Orderable & Pick<Creature, 'conditions'>
 
-export interface TurnState<T extends TurnCreature> {
+interface TurnState<T extends TurnCreature> {
   round: number
   activeId: string | null
   creatures: T[]
@@ -78,7 +78,7 @@ export function nextUp<T extends Pick<Creature, 'id' | 'conditions'>>(ordered: r
   return null
 }
 
-export interface TurnPosition {
+interface TurnPosition {
   round: number
   /** Index of the acting creature in initiative order; -1 before combat starts. */
   index: number
@@ -161,11 +161,6 @@ export const HEALTH_LABEL: Record<HealthBand, string> = {
   down: 'Down',
 }
 
-export function hpFraction(current: number | null, max: number | null): number | null {
-  if (current === null || max === null || max <= 0) return null
-  return Math.max(0, Math.min(1, current / max))
-}
-
 /** "Goblin" ×3 → Goblin 1, Goblin 2, Goblin 3 (continuing past any existing numbers). */
 export function numberedNames(base: string, count: number, existing: readonly string[]): string[] {
   const name = base.trim()
@@ -218,7 +213,7 @@ export function duplicateCreature(c: Creature, name: string, rollInitiative?: (b
  * Who the players may see: never hidden creatures, and before combat starts only
  * the party, so the DM can set the scene and hide what should stay hidden first.
  */
-export function visibleToPlayers<T extends Pick<Creature, 'hidden' | 'is_player'>>(creatures: readonly T[], started: boolean): T[] {
+function visibleToPlayers<T extends Pick<Creature, 'hidden' | 'is_player'>>(creatures: readonly T[], started: boolean): T[] {
   return creatures.filter((c) => !c.hidden && (started || c.is_player))
 }
 

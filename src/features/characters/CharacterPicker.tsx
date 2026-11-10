@@ -21,7 +21,7 @@ export function CharacterPicker({ characters, onClaim, onCreate, pending, claimL
           <Token name={c.name} src={c.image_url} isPlayer size={56} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-body text-dnd-parchment group-hover:text-dnd-gold">{c.name}</p>
-            <p className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-dnd-muted">
+            <p className="mt-0.5 flex flex-wrap gap-x-3 text-[0.6875rem] text-dnd-muted">
               {c.classes.length > 0 && <span>{classSummary(c.classes)}</span>}
               {c.max_hp !== null && (
                 <span className="flex items-center gap-0.5">

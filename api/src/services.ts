@@ -49,12 +49,7 @@ export function services(): Services {
   return (current ??= createServices(readConfig()))
 }
 
-/** Tests swap in fakes. */
-export function setServices(next: Services | null) {
-  current = next
-}
-
-export function createServices(config: Config, log: Logger = console): Services {
+function createServices(config: Config, log: Logger = console): Services {
   return {
     config,
     store: config.cosmos

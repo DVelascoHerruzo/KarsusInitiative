@@ -167,8 +167,25 @@ describe('email verification', () => {
     const { api } = await signedUp(app, 'new@example.com', 'Newcomer', { verify: false })
     const statuses = []
     for (let i = 0; i < 5; i++) statuses.push((await api('POST', '/api/auth/verify/resend')).status)
-    expect(statuses).toEqual([204, 204, 204, 204, 429])
+    expect(statuses).toEqual([200, 200, 200, 200, 429])
     expect(app.mail.filter((m) => m.to === 'new@example.com')).toHaveLength(5)
+  })
+
+  it('only reports a link as sent once it really went out', async () => {
+    const app = testApp()
+    const working = app.s.mail!
+    // Sign-up while email is down: the account is made, but nothing is marked sent.
+    app.s.mail = { send: async () => Promise.reject(new Error('mail down')) }
+    const api = app.client()
+    const res = await api('POST', '/api/auth/signup', { body: { email: 'new@example.com', username: 'Newcomer', password: PASSWORD } })
+    expect(res.status).toBe(201)
+    expect(res.body.user.verification_sent_at).toBeNull()
+    expect((await api('POST', '/api/auth/verify/resend')).status).toBe(502)
+
+    app.s.mail = working
+    const resent = await api('POST', '/api/auth/verify/resend')
+    expect(resent.body.user.verification_sent_at).toEqual(expect.any(String))
+    expect((await api('GET', '/api/auth/me')).body.user.verification_sent_at).toEqual(resent.body.user.verification_sent_at)
   })
 
   it('isn’t required where the server can’t send email', async () => {

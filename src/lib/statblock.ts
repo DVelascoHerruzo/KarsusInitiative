@@ -7,7 +7,7 @@ import { abilityModifier } from './sheet'
  * "Initiative +2 (12)", "HP 7 (2d6)", "Dex 14 +2 +2"). Anything it can't find
  * stays empty for the DM to fill in.
  */
-export interface StatBlock {
+interface StatBlock {
   name: string | null
   armor_class: number | null
   max_hp: number | null

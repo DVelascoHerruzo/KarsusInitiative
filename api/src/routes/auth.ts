@@ -55,9 +55,12 @@ function emailHtml(site: string, heading: string, body: string, button: { label:
 </div>`
 }
 
-/** Emails a one-time link proving the account's owner reads this inbox. */
-export async function sendVerification(s: Services, req: { url: string }, user: UserEntry): Promise<void> {
-  if (!s.mail) return
+/**
+ * Emails a one-time link proving the account's owner reads this inbox, and
+ * records when it went out, so the app only ever says "sent" when it was.
+ */
+async function sendVerification(s: Services, req: { url: string }, user: UserEntry): Promise<UserEntry> {
+  if (!s.mail) return user
   const token = randomBytes(32).toString('base64url')
   await s.store.putEntry({
     id: entryId.verify(sha256(token)),
@@ -80,6 +83,9 @@ export async function sendVerification(s: Services, req: { url: string }, user: 
       'The link works once, for 48 hours. If you didn’t sign up, ignore this email and nothing happens.',
     ),
   })
+  const sent: UserEntry = { ...user, verify_sent_at: s.now().toISOString() }
+  await s.store.putEntry(sent)
+  return sent
 }
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
@@ -93,7 +99,7 @@ export async function newPassword(s: Services, value: unknown): Promise<string> 
   return password
 }
 
-export async function userByEmail(s: Services, email: string): Promise<UserEntry | null> {
+async function userByEmail(s: Services, email: string): Promise<UserEntry | null> {
   const alias = await s.store.getEntry(entryId.email(email), 'alias')
   return alias ? s.store.getEntry(entryId.user(alias.user_id), 'user') : null
 }
@@ -168,9 +174,12 @@ export const authRoutes: Route[] = [
         const email = v.email(body.email)
         const username = v.username(body.username)
         const password = await newPassword(s, body.password)
-        const user = await createUser(s, { email, username, password_hash: await hashPassword(password), email_verified: false, google_sub: null })
-        // The account exists either way; if the email fails, the app offers to send it again.
-        await sendVerification(s, req, user).catch((e: unknown) => s.log.warn('Verification email failed', e))
+        const created = await createUser(s, { email, username, password_hash: await hashPassword(password), email_verified: false, google_sub: null })
+        // The account exists either way. If the email fails, it isn't marked sent, and the app sends it again.
+        const user = await sendVerification(s, req, created).catch((e: unknown) => {
+          s.log.warn('Verification email failed', e)
+          return created
+        })
         return json({ user: publicUser(user) }, 201, { cookies: [await sessionCookie(s, user)] })
       },
     },
@@ -279,13 +288,18 @@ export const authRoutes: Route[] = [
     name: 'auth-verify-resend',
     route: 'auth/verify/resend',
     methods: {
+      /** Sends a fresh link and answers with the account, now showing when it was sent. */
       async POST(req, s) {
         const user = await requireUser(s, req, { allowUnverified: true })
-        if (user.email_verified) return noContent()
+        if (user.email_verified) return json({ user: publicUser(user) })
         if (!s.mail) throw new HttpError(503, 'Email isn’t set up on this server')
         await rateLimit(s, 'verifyEmail', user.user_id)
-        await sendVerification(s, req, user)
-        return noContent()
+        try {
+          return json({ user: publicUser(await sendVerification(s, req, user)) })
+        } catch (e) {
+          s.log.warn('Verification email failed', e)
+          throw new HttpError(502, `We couldn’t send the email just now. Try again in a minute${CONTACT_EMAIL ? `, or write to ${CONTACT_EMAIL}` : ''}.`)
+        }
       },
     },
   },
