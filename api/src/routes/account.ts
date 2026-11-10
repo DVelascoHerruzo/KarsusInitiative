@@ -82,7 +82,7 @@ export const accountRoutes: Route[] = [
     methods: {
       /** Sets a new password. Signs out every other device, and adds a password to a Google-only account. */
       async POST(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUser(s, req, { allowUnverified: true })
         await rateLimit(s, 'password', user.user_id)
         const body = await readJson(req)
         if (user.password_hash) await confirmIdentity(user, { password: body.current })
@@ -104,7 +104,7 @@ export const accountRoutes: Route[] = [
     methods: {
       /** Ends every session except this one: for a lost phone or a shared computer. */
       async POST(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUser(s, req, { allowUnverified: true })
         const updated: UserEntry = { ...user, session_version: user.session_version + 1 }
         await s.store.putEntry(updated)
         return noContent({ cookies: [await sessionCookie(s, updated)] })
@@ -116,7 +116,7 @@ export const accountRoutes: Route[] = [
     route: 'auth/export',
     methods: {
       async GET(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUser(s, req, { allowUnverified: true })
         await rateLimit(s, 'account', user.user_id)
         return json(await exportAccount(s, user), 200, { headers: { 'content-disposition': 'attachment; filename="karsus-data.json"' } })
       },
@@ -128,7 +128,7 @@ export const accountRoutes: Route[] = [
     methods: {
       /** Deletes the account for good, after re-confirming who's asking. */
       async DELETE(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUser(s, req, { allowUnverified: true })
         await rateLimit(s, 'account', user.user_id)
         await confirmIdentity(user, await readJson(req))
         await deleteAccount(s, user)

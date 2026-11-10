@@ -330,4 +330,6 @@ export interface User {
   mode: Mode
   /** How they can sign in, for the account page. */
   sign_in: { password: boolean; google: boolean }
+  /** Whether they've opened the link in their verification email (or signed in with Google). */
+  email_verified: boolean
 }

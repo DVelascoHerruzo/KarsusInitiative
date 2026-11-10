@@ -156,11 +156,25 @@ export function testApp(overrides: { store?: Store; env?: Record<string, string>
 }
 
 /** A signed-up client, ready to use. */
-export async function signedUp(app: TestApp, email = 'dm@example.com', username = 'Dungeon Master') {
+/** A signed-up client whose email is confirmed, ready to use. Pass `verify: false` to stop before opening the email. */
+export async function signedUp(app: TestApp, email = 'dm@example.com', username = 'Dungeon Master', opts: { verify?: boolean } = {}) {
   const api = app.client()
   const res = await api('POST', '/api/auth/signup', { body: { email, username, password: 'correct horse battery' } })
   if (res.status !== 201) throw new Error(`signup failed: ${JSON.stringify(res.body)}`)
-  return { api, user: res.body.user as { id: string; email: string; username: string; mode: string } }
+  let user = res.body.user as { id: string; email: string; username: string; mode: string; email_verified: boolean }
+  if (opts.verify !== false) {
+    const verified = await api('POST', '/api/auth/verify', { body: { token: verifyToken(app, email) } })
+    if (verified.status !== 200) throw new Error(`verify failed: ${JSON.stringify(verified.body)}`)
+    user = verified.body.user
+  }
+  return { api, user }
+}
+
+/** The token from the latest verification email sent to an address. */
+export function verifyToken(app: TestApp, email: string): string {
+  const mail = app.mail.filter((m) => m.to === email && m.text.includes('/verify-email?token=')).at(-1)
+  if (!mail) throw new Error(`no verification email for ${email}`)
+  return new URL(/https:\S+/.exec(mail.text)![0]).searchParams.get('token')!
 }
 
 /** A minimal valid WebP header. */

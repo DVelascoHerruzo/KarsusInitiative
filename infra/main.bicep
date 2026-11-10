@@ -48,6 +48,9 @@ param cosmosFreeTier bool = true
 @description('Where Communication Services stores email data.')
 param emailDataLocation string = 'Europe'
 
+@description('Your own domain to send email from (no-reply@<domain>). It needs its TXT, SPF and DKIM records in DNS (see README). Leave empty to send from Azure\'s own address.')
+param customEmailDomain string = 'karsusinitiative.com'
+
 var suffix = uniqueString(resourceGroup().id)
 
 // ─── Cosmos DB ───────────────────────────────────────────────────────────────
@@ -157,12 +160,32 @@ resource emailDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' 
   }
 }
 
+// Your own domain: mail comes from no-reply@<domain>, far less likely to land in spam.
+resource customDomain 'Microsoft.Communication/emailServices/domains@2023-04-01' = if (!empty(customEmailDomain)) {
+  parent: emailService
+  name: empty(customEmailDomain) ? 'unused' : customEmailDomain
+  location: 'global'
+  properties: {
+    domainManagement: 'CustomerManaged'
+    userEngagementTracking: 'Disabled'
+  }
+}
+
+resource noReply 'Microsoft.Communication/emailServices/domains/senderUsernames@2023-04-01' = if (!empty(customEmailDomain)) {
+  parent: customDomain
+  name: 'no-reply'
+  properties: {
+    username: 'no-reply'
+    displayName: 'Karsus Initiative'
+  }
+}
+
 resource communication 'Microsoft.Communication/communicationServices@2023-04-01' = {
   name: '${name}-acs-${suffix}'
   location: 'global'
   properties: {
     dataLocation: emailDataLocation
-    linkedDomains: [emailDomain.id]
+    linkedDomains: empty(customEmailDomain) ? [emailDomain.id] : [emailDomain.id, customDomain.id]
   }
 }
 
@@ -189,7 +212,7 @@ resource siteSettings 'Microsoft.Web/staticSites/config@2023-12-01' = {
     IMAGES_CONTAINER: imagesContainer.name
     WEBPUBSUB_CONNECTION_STRING: pubsub.listKeys().primaryConnectionString
     ACS_CONNECTION_STRING: communication.listKeys().primaryConnectionString
-    MAIL_SENDER: 'DoNotReply@${emailDomain.properties.mailFromSenderDomain}'
+    MAIL_SENDER: empty(customEmailDomain) ? 'DoNotReply@${emailDomain.properties.mailFromSenderDomain}' : 'no-reply@${customEmailDomain}'
     GOOGLE_CLIENT_ID: googleClientId
     GOOGLE_CLIENT_SECRET: googleClientSecret
   }

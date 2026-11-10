@@ -25,6 +25,7 @@ export const LIMITS = {
   import: { max: 30, windowSeconds: 600 },
   upload: { max: 120, windowSeconds: 3600 },
   account: { max: 5, windowSeconds: 3600 },
+  verifyEmail: { max: 4, windowSeconds: 3600 },
 } satisfies Record<string, Limit>
 
 /**

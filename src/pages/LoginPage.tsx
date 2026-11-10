@@ -74,7 +74,7 @@ function AuthForm({ next, initial }: { next: string; initial: Mode }) {
       } else if (mode === 'register') {
         const { user } = await api.post<{ user: User }>('auth/signup', { email, password, username: username.trim() })
         signedIn(user)
-        toast.success('Your legend begins!')
+        toast.success('Your legend begins!', { description: `We sent a link to ${user.email}. Open it to confirm your email.` })
         navigate(next, { replace: true })
       } else {
         await api.post('auth/forgot', { email })
