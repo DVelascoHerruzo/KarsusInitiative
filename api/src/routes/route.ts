@@ -1,4 +1,4 @@
-import { syncCharacters, upgrade } from '../domain/tables'
+import { isExpired, secondsLeft, syncCharacters, upgrade, withTtl } from '../domain/tables'
 import { HttpError, type ApiRequest, type ApiResponse } from '../http'
 import type { Services } from '../services'
 import { entryId, type DocOf, type Kind, type PresetDoc, type TableDoc } from '../store/types'
@@ -74,7 +74,7 @@ function check(access: Access | null, need: Access, kind: Kind) {
 export async function openTable<K extends Kind>(s: Services, userId: string, kind: K, id: string, need: Access): Promise<Opened<K>> {
   const ownerId = await ownerOf(s, userId, kind, id)
   const found = ownerId ? await s.store.getTable(ownerId, kind, id) : null
-  if (!found) throw new HttpError(404, NOT_FOUND[kind])
+  if (!found || isExpired(found.doc, s.now())) throw new HttpError(404, NOT_FOUND[kind])
   const doc = upgrade(found.doc)
   const campaign = await getCampaign(s, doc)
   const access = accessTo(userId, doc, campaign)
@@ -100,7 +100,7 @@ export async function writeTable<K extends Kind>(
     const current = upgrade(found.doc)
     const changed = await apply(current)
     if (changed === current) return current
-    const doc = { ...changed, updated_at: s.now().toISOString() }
+    const doc = withTtl({ ...changed, updated_at: s.now().toISOString() }, s.now())
     if (await s.store.replaceTable(doc, found.etag)) {
       const saved: TableDoc = doc
       if (saved.kind === 'encounter') await s.live.notify(saved.share_token)
@@ -139,13 +139,17 @@ export async function syncCampaign(s: Services, campaign: PresetDoc): Promise<vo
 
 // ─── Creating and deleting ───────────────────────────────────────────────────
 
-/** Writes a new table with its locator (and, for an encounter, its share link, switched off). */
+/**
+ * Writes a new table with its locator (and, for an encounter, its share link,
+ * switched off). A guest encounter's locator and link end when it does.
+ */
 export async function createTable(s: Services, doc: TableDoc): Promise<void> {
-  await s.store.putEntry({ id: entryId.table(doc.id), kind: 'table', owner_id: doc.owner_id, table_kind: doc.kind })
+  const ttl = doc.kind === 'encounter' && doc.expires_at ? { ttl: secondsLeft(doc.expires_at, s.now()) } : {}
+  await s.store.putEntry({ id: entryId.table(doc.id), kind: 'table', owner_id: doc.owner_id, table_kind: doc.kind, ...ttl })
   if (doc.kind === 'encounter') {
-    await s.store.createEntry({ id: entryId.share(doc.share_token), kind: 'share', owner_id: doc.owner_id, encounter_id: doc.id })
+    await s.store.createEntry({ id: entryId.share(doc.share_token), kind: 'share', owner_id: doc.owner_id, encounter_id: doc.id, ...ttl })
   }
-  await s.store.createTable(doc)
+  await s.store.createTable(withTtl(doc, s.now()))
 }
 
 export async function deleteTable(s: Services, doc: TableDoc): Promise<void> {

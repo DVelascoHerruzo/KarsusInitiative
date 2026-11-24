@@ -10,6 +10,7 @@ import NotFound, { RouteError } from '@/pages/NotFoundPage'
 
 // Every page is its own chunk: players opening a share link never download the DM screen.
 const Landing = lazy(() => import('@/pages/LandingPage'))
+const Guest = lazy(() => import('@/pages/GuestPage'))
 const Dashboard = lazy(() => import('@/pages/DashboardPage'))
 const PlayerHome = lazy(() => import('@/pages/PlayerHomePage'))
 const Campaign = lazy(() => import('@/pages/CampaignPage'))
@@ -68,11 +69,11 @@ function RootLayout() {
   )
 }
 
-/** Signed in, home is whichever side of the table you were on last. */
+/** Signed in, home is whichever side of the table you were on last. Signed out, it's an encounter ready to run. */
 function Home() {
   const { user, loading, mode, needsVerification } = useAuth()
   if (loading) return <FullScreenLoader />
-  if (!user) return <Landing />
+  if (!user) return <Guest />
   if (needsVerification) return <VerifyEmailGate />
   return mode === 'player' ? <PlayerHome /> : <Dashboard />
 }
@@ -89,6 +90,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { path: '/', element: <Home /> },
+      { path: '/about', element: <Landing /> },
       { path: '/login', element: <Login /> },
       { path: '/reset-password', element: <ResetPassword /> },
       { path: '/encounters/:id', element: authed(Encounter) },

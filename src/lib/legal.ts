@@ -6,7 +6,7 @@ export const SITE_NAME = 'Karsus Initiative'
 export const CONTACT_EMAIL: string | null = 'karsus.support@gmail.com'
 export const KOFI_URL = 'https://ko-fi.com/barope'
 /** When the privacy policy and terms last changed. */
-export const LEGAL_UPDATED = '2026-11-10'
+export const LEGAL_UPDATED = '2026-11-24'
 
 /**
  * Credit for the backdrop (src/assets/backdrop/source.jpg), shown in every footer. Set it

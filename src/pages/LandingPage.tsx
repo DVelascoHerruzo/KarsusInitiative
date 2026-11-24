@@ -17,7 +17,7 @@ export default function LandingPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
-      <title>Karsus – D&D Initiative Tracker</title>
+      <title>About Karsus – D&D Initiative Tracker</title>
       {/* Background: lighter at the top so the navbar reads, heavier toward the bottom to anchor the copy. */}
       <div className="absolute inset-0 z-0">
         <picture>
@@ -64,11 +64,11 @@ export default function LandingPage() {
         </p>
 
         <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
-          <Link to="/login" state={{ mode: 'register' }} className="dnd-button-primary px-8 py-3 text-base shadow-glow-teal">
-            Begin Your Legend <ChevronRight className="h-4 w-4" />
+          <Link to="/" className="dnd-button-primary px-8 py-3 text-base shadow-glow-teal">
+            Start an Encounter <ChevronRight className="h-4 w-4" />
           </Link>
           <Link to="/demo" className="dnd-button-secondary px-8 py-3 text-base">
-            Try the Demo
+            See an Example
           </Link>
         </div>
 
