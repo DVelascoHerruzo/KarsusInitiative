@@ -19,8 +19,8 @@ function signingKey(s: Services): Uint8Array {
   return new TextEncoder().encode(secret)
 }
 
-/** Short-lived signed values (the OAuth state cookie) use the same key as sessions. */
-export async function sign(s: Services, claims: JWTPayload, expiresIn: string): Promise<string> {
+/** Short-lived signed values (the OAuth state cookie, the guest cookie) use the same key as sessions. */
+export async function sign(s: Services, claims: JWTPayload, expiresIn: string | number): Promise<string> {
   return new SignJWT(claims).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime(expiresIn).sign(signingKey(s))
 }
 
@@ -66,6 +66,12 @@ export async function currentUser(s: Services, req: ApiRequest): Promise<UserEnt
 /** Whether accounts must confirm their email before using the site: only where email can be sent. */
 export const verificationRequired = (s: Services) => s.mail !== null
 
+function checkVerified(s: Services, user: UserEntry, allowUnverified = false) {
+  if (!user.email_verified && !allowUnverified && verificationRequired(s)) {
+    throw new HttpError(403, 'Confirm your email first: open the link we sent you.')
+  }
+}
+
 /**
  * The signed-in account, or 401. Until the email is confirmed (403), only the
  * account's own routes work: verifying, resending, settings, export and deletion.
@@ -73,10 +79,53 @@ export const verificationRequired = (s: Services) => s.mail !== null
 export async function requireUser(s: Services, req: ApiRequest, opts: { allowUnverified?: boolean } = {}): Promise<UserEntry> {
   const user = await currentUser(s, req)
   if (!user) throw new HttpError(401, 'Sign in to continue')
-  if (!user.email_verified && !opts.allowUnverified && verificationRequired(s)) {
-    throw new HttpError(403, 'Confirm your email first: open the link we sent you.')
-  }
+  checkVerified(s, user, opts.allowUnverified)
   return user
+}
+
+// ─── Guests ──────────────────────────────────────────────────────────────────
+// Anyone can run an encounter without an account. Their first change creates it,
+// owned by a random guest id that only this signed cookie knows. It ends at a
+// fixed time (cookie and encounter together), unless they sign up or sign in,
+// which moves it into their account.
+
+export const GUEST_COOKIE = 'karsus_guest'
+export const GUEST_DAYS = 7
+
+export interface Guest {
+  guest_id: string
+  encounter_id: string
+  expires_at: string
+}
+
+export async function guestCookie(s: Services, guest: Guest): Promise<Cookie> {
+  const exp = Math.floor(Date.parse(guest.expires_at) / 1000)
+  const token = await sign(s, { sub: guest.guest_id, enc: guest.encounter_id, gst: true }, exp)
+  return cookie(s, GUEST_COOKIE, token, Math.max(0, exp - Math.floor(s.now().getTime() / 1000)))
+}
+
+/** This browser's guest, if it has one that hasn't ended. */
+export async function currentGuest(s: Services, req: ApiRequest): Promise<Guest | null> {
+  const token = readCookie(req, GUEST_COOKIE)
+  const claims = token ? await verify(s, token) : null
+  if (!claims || claims.gst !== true || typeof claims.sub !== 'string' || typeof claims.enc !== 'string' || !claims.exp) return null
+  return { guest_id: claims.sub, encounter_id: claims.enc, expires_at: new Date(claims.exp * 1000).toISOString() }
+}
+
+/**
+ * Whoever owns tables on this request: the signed-in account (with requireUser's
+ * rules), or else this browser's guest. Only for the routes a guest may use:
+ * running their own encounter, never campaigns, invites, folders or uploads.
+ */
+export async function requireUserOrGuest(s: Services, req: ApiRequest): Promise<{ user_id: string; guest: boolean }> {
+  const user = await currentUser(s, req)
+  if (user) {
+    checkVerified(s, user)
+    return { user_id: user.user_id, guest: false }
+  }
+  const guest = await currentGuest(s, req)
+  if (guest) return { user_id: guest.guest_id, guest: true }
+  throw new HttpError(401, 'Sign in to continue')
 }
 
 export const publicUser = (u: UserEntry): User => ({

@@ -35,6 +35,9 @@ export default function Layout({ children, title, guest }: LayoutProps) {
 
           {guest ? (
             <div className="flex items-center gap-2">
+              <Link to="/about" className="dnd-button-ghost hidden px-3 py-1.5 text-sm sm:inline-flex">
+                About
+              </Link>
               <Link to="/login" className="dnd-button-ghost px-3 py-1.5 text-sm">
                 Sign In
               </Link>

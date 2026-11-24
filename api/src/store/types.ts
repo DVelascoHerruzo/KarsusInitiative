@@ -5,7 +5,13 @@ import type { Encounter, Folders, Mode, Preset, Role } from '@/lib/types'
 // by owner. Every write is a compare-and-swap on the document's ETag, so two
 // devices editing at once retry instead of overwriting each other.
 
-export type EncounterDoc = Encounter & { kind: 'encounter' }
+export type EncounterDoc = Encounter & {
+  kind: 'encounter'
+  /** Guest encounters only: when it's deleted. Accounts' encounters never expire. */
+  expires_at?: string
+  /** Seconds until Cosmos deletes it, counted from the latest write (so each write sets what's left). */
+  ttl?: number
+}
 export type PresetDoc = Preset & { kind: 'preset' }
 export type TableDoc = EncounterDoc | PresetDoc
 export type Kind = TableDoc['kind']
@@ -48,6 +54,8 @@ export interface ShareEntry {
   kind: 'share'
   owner_id: string
   encounter_id: string
+  /** Set for a guest encounter's link, which ends with it. */
+  ttl?: number
 }
 
 /** Where a table lives: tables are partitioned by owner, and members only know the id. */
@@ -56,6 +64,8 @@ export interface TableEntry {
   kind: 'table'
   owner_id: string
   table_kind: Kind
+  /** Set for a guest encounter, which ends at a fixed time. */
+  ttl?: number
 }
 
 /** An invite link: whoever opens it joins the table with this role. */

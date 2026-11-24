@@ -322,6 +322,12 @@ export interface Folders {
 }
 
 /** The signed-in account, as the API reports it. */
+/** Someone running an encounter without an account: it's theirs on this device until expires_at. */
+export interface GuestSession {
+  encounter_id: string
+  expires_at: string
+}
+
 export interface User {
   id: string
   email: string

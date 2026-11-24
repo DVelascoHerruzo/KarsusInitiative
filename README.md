@@ -47,6 +47,12 @@ only for the optional "Continue with Google" sign-in.
   creatures embedded, partitioned by owner. Every write is a compare-and-swap on the document's
   ETag with retries, so two devices editing at once both land. The `directory` container holds
   users, email and Google aliases, share links, and reset tokens (which expire through Cosmos TTL).
+- **Guests.** Signed out, `/` is a blank encounter. The first change calls `POST /api/guest`, which
+  creates the encounter under a random guest id held in the signed `karsus_guest` cookie. It ends
+  after 7 days: the encounter, its locator and share link carry a Cosmos `ttl` (the `tables`
+  container needs `defaultTtl: -1`, set in `infra/main.bicep`), and the API treats it as gone
+  once `expires_at` passes either way. Signing up or in moves it into the account, share link
+  and all. Guests can't list encounters, use campaigns, folders or invites, or upload images.
 - **One turn engine.** `src/lib/combat.ts` runs in the API for real turns and in the browser for
   the instant (optimistic) update and the offline demo, so they can't disagree.
 - **Player view.** `/api/play/<token>` returns a redacted snapshot: no DM notes, and monsters show a

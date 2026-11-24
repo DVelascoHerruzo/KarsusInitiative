@@ -1,10 +1,14 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, isBackendConfigured } from '@/lib/api'
-import type { Mode, User } from '@/lib/types'
+import type { GuestSession, Mode, User } from '@/lib/types'
 
 interface AuthState {
   user: User | null
+  /** Without an account: the encounter this device runs as a guest, until it ends. */
+  guest: GuestSession | null
+  /** The guest page started or ended the guest encounter. */
+  setGuest: (guest: GuestSession | null) => void
   /** Display name: the account's username, falling back to the email prefix. */
   displayName: string
   loading: boolean
@@ -29,6 +33,7 @@ const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
+  const [guest, setGuest] = useState<GuestSession | null>(null)
   const [loading, setLoading] = useState(isBackendConfigured)
   const [googleSignIn, setGoogleSignIn] = useState(false)
   const [verificationRequired, setVerificationRequired] = useState(false)
@@ -37,9 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const load = useCallback(
     () =>
       api
-        .get<{ user: User | null; google: boolean; verification: boolean }>('auth/me')
+        .get<{ user: User | null; guest: GuestSession | null; google: boolean; verification: boolean }>('auth/me')
         .then((me) => {
           setUser(me.user)
+          setGuest(me.guest ?? null)
           setGoogleSignIn(me.google)
           setVerificationRequired(me.verification)
         })
@@ -61,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Never show one account's cached data to the next one on a shared device.
       qc.clear()
       setUser(next)
+      // Signing in moved any guest encounter into the account.
+      setGuest(null)
     },
     [qc],
   )
@@ -74,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       user,
+      guest,
+      setGuest,
       displayName: user?.username || user?.email.split('@')[0] || 'Adventurer',
       loading,
       googleSignIn,
@@ -87,9 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await api.post('auth/signout')
         qc.clear()
         setUser(null)
+        setGuest(null)
       },
     }),
-    [user, loading, googleSignIn, verificationRequired, refresh, setMode, signedIn, qc],
+    [user, guest, loading, googleSignIn, verificationRequired, refresh, setMode, signedIn, qc],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

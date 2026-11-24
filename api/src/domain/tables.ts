@@ -241,8 +241,21 @@ export function syncCharacters(encounter: EncounterDoc, campaign: PresetDoc): En
 
 // ─── What leaves the server ──────────────────────────────────────────────────
 
-export function toEncounter({ kind: _kind, ...encounter }: EncounterDoc): Encounter {
+export function toEncounter({ kind: _kind, expires_at: _expires, ttl: _ttl, ...encounter }: EncounterDoc): Encounter {
   return encounter
+}
+
+// ─── Guest encounters end at a fixed time ────────────────────────────────────
+
+/** Past its end date: treated as gone even before Cosmos gets round to deleting it. */
+export const isExpired = (doc: TableDoc, now: Date) => doc.kind === 'encounter' && doc.expires_at !== undefined && Date.parse(doc.expires_at) <= now.getTime()
+
+/** Seconds left before a guest encounter ends (at least 1), for Cosmos's ttl. */
+export const secondsLeft = (expiresAt: string, now: Date) => Math.max(1, Math.ceil((Date.parse(expiresAt) - now.getTime()) / 1000))
+
+/** Cosmos counts ttl from each write, so every write of a guest encounter sets the time that's left. */
+export function withTtl<T extends TableDoc>(doc: T, now: Date): T {
+  return doc.kind === 'encounter' && doc.expires_at ? { ...doc, ttl: secondsLeft(doc.expires_at, now) } : doc
 }
 
 export function toPreset({ kind: _kind, ...preset }: PresetDoc): Preset {

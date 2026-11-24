@@ -67,14 +67,16 @@ function AuthForm({ next, initial }: { next: string; initial: Mode }) {
     setError(null)
     try {
       if (mode === 'login') {
-        const { user } = await api.post<{ user: User }>('auth/signin', { email, password })
+        const { user, adopted } = await api.post<{ user: User; adopted: number }>('auth/signin', { email, password })
         signedIn(user)
-        toast.success('Welcome back, adventurer!')
+        toast.success('Welcome back, adventurer!', adopted ? { description: 'The encounter you ran as a guest is now in your account.' } : undefined)
         navigate(next, { replace: true })
       } else if (mode === 'register') {
-        const { user } = await api.post<{ user: User }>('auth/signup', { email, password, username: username.trim() })
+        const { user, adopted } = await api.post<{ user: User; adopted: number }>('auth/signup', { email, password, username: username.trim() })
         signedIn(user)
-        toast.success('Your legend begins!', { description: `We sent a link to ${user.email}. Open it to confirm your email.` })
+        toast.success('Your legend begins!', {
+          description: `We sent a link to ${user.email}. Open it to confirm your email${adopted ? ', and your encounter is waiting in your account' : ''}.`,
+        })
         navigate(next, { replace: true })
       } else {
         await api.post('auth/forgot', { email })

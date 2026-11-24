@@ -1,5 +1,5 @@
 import type { Creature, PlayerEncounter } from '@/lib/types'
-import { requireUser } from '../auth/session'
+import { requireUser, requireUserOrGuest } from '../auth/session'
 import * as table from '../domain/tables'
 import * as v from '../domain/validate'
 import { HttpError, json, noContent, readJson } from '../http'
@@ -32,11 +32,11 @@ export const encounterRoutes: Route[] = [
     route: 'encounters/{id}',
     methods: {
       async GET(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         return json(table.toEncounter((await openTable(s, user.user_id, 'encounter', param(req, 'id'), 'dm')).doc))
       },
       async PATCH(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         const patch = v.encounterPatch(await readJson(req))
         const id = param(req, 'id')
         if (patch.campaign_id) {
@@ -50,7 +50,7 @@ export const encounterRoutes: Route[] = [
         return json(table.toEncounter(doc))
       },
       async DELETE(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         try {
           await deleteTable(s, (await openTable(s, user.user_id, 'encounter', param(req, 'id'), 'owner')).doc)
         } catch (e) {
@@ -107,7 +107,7 @@ export const encounterRoutes: Route[] = [
     methods: {
       /** A WebSocket URL for the encounter's change pings, for anyone at the table. */
       async GET(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         const { doc } = await openTable(s, user.user_id, 'encounter', param(req, 'id'), 'player')
         const url = await s.live.clientUrl(doc.share_token)
         return url ? json({ url }) : noContent()
@@ -119,7 +119,7 @@ export const encounterRoutes: Route[] = [
     route: 'encounters/{id}/turn',
     methods: {
       async POST(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         const { step } = await readJson(req)
         if (step !== 1 && step !== -1) throw new HttpError(400, 'Step must be 1 or -1')
         const doc = await mutateTable(s, user.user_id, 'encounter', param(req, 'id'), 'dm', (d) => table.advance(d, step))
@@ -132,7 +132,7 @@ export const encounterRoutes: Route[] = [
     route: 'encounters/{id}/creatures',
     methods: {
       async POST(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         const input = v.newCreatures(await readJson(req))
         let added: Creature[] = []
         await mutateTable(s, user.user_id, 'encounter', param(req, 'id'), 'dm', (d) => {
@@ -150,7 +150,7 @@ export const encounterRoutes: Route[] = [
     methods: {
       /** The DM changes anything; a player changes their own character's HP and conditions. */
       async PATCH(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         const patch = v.creaturePatch(await readJson(req))
         const cid = param(req, 'cid')
         let asPlayer = false
@@ -167,7 +167,7 @@ export const encounterRoutes: Route[] = [
         return json(asPlayer ? table.ownCharacter(creature) : creature)
       },
       async DELETE(req, s) {
-        const user = await requireUser(s, req)
+        const user = await requireUserOrGuest(s, req)
         const cid = param(req, 'cid')
         const doc = await mutateTable(s, user.user_id, 'encounter', param(req, 'id'), 'dm', (d) => table.removeCreature(d, cid))
         return json(table.toEncounter(doc))
