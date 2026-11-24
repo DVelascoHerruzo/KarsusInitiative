@@ -104,6 +104,10 @@ export function PrivacyPage() {
             sent to our API.
           </li>
           <li>
+            <code>karsus_guest</code> lets you run an encounter without an account. It holds a random id, no personal details, and ends after seven days, or
+            when you sign in.
+          </li>
+          <li>
             <code>karsus_oauth</code> exists for ten minutes while you sign in with Google.
           </li>
           <li>Your browser’s local storage remembers your colour theme and the offline demo. It never leaves your device.</li>
@@ -114,7 +118,8 @@ export function PrivacyPage() {
       <section>
         <h2>How long we keep it</h2>
         <p>
-          Until you delete it. Deleting an encounter, campaign or your whole account removes it straight away. Our database provider keeps short-lived backups, which
+          Until you delete it. Deleting an encounter, campaign or your whole account removes it straight away. An encounter run without an account is deleted seven
+          days after it was started, unless you sign up or sign in first, which moves it into your account. Our database provider keeps short-lived backups, which
           roll over within a day.
         </p>
       </section>

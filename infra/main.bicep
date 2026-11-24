@@ -81,6 +81,7 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15
 }
 
 // Encounters and presets, one document each with creatures embedded, partitioned by owner.
+// TTL is on (-1: nothing expires unless it says so) so guest encounters delete themselves after seven days.
 resource tablesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
   parent: database
   name: 'tables'
@@ -88,6 +89,7 @@ resource tablesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
     resource: {
       id: 'tables'
       partitionKey: { paths: ['/owner_id'], kind: 'Hash' }
+      defaultTtl: -1
     }
   }
 }

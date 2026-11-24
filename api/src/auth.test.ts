@@ -11,7 +11,7 @@ describe('accounts', () => {
     const { api, user } = await signedUp(app)
     expect(user).toMatchObject({ email: 'dm@example.com', username: 'Dungeon Master' })
 
-    expect((await api('GET', '/api/auth/me')).body).toEqual({ user, google: false, verification: true })
+    expect((await api('GET', '/api/auth/me')).body).toEqual({ user, guest: null, google: false, verification: true })
     expect((await api('POST', '/api/auth/signout')).status).toBe(204)
     expect((await api('GET', '/api/auth/me')).body).toMatchObject({ user: null })
   })
@@ -162,12 +162,12 @@ describe('Google sign-in', () => {
 
   it('tells the sign-in page whether Google is available, and bounces back when it isn’t', async () => {
     const off = testApp()
-    expect((await off.call('GET', '/api/auth/me')).body).toEqual({ user: null, google: false, verification: true })
+    expect((await off.call('GET', '/api/auth/me')).body).toEqual({ user: null, guest: null, google: false, verification: true })
     const res = await off.call('GET', '/api/auth/google?next=/encounters/1')
     expect(res).toMatchObject({ status: 302, headers: { location: '/login?error=google' } })
 
     const on = testApp({ env: { GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'secret' } })
-    expect((await on.call('GET', '/api/auth/me')).body).toEqual({ user: null, google: true, verification: true })
+    expect((await on.call('GET', '/api/auth/me')).body).toEqual({ user: null, guest: null, google: true, verification: true })
   })
 
   it('sends the browser to Google with PKCE and a signed state cookie', async () => {

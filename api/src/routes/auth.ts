@@ -1,13 +1,14 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { clearGoogleState, finishGoogle, startGoogle, type GoogleProfile } from '../auth/google'
 import { hashPassword, isBreached, spendPasswordTime, verifyPassword } from '../auth/password'
-import { SESSION_COOKIE, currentUser, expiredCookie, expiredLegacyCookie, publicUser, requireUser, sessionCookie, verificationRequired } from '../auth/session'
+import { SESSION_COOKIE, currentGuest, currentUser, expiredCookie, expiredLegacyCookie, publicUser, requireUser, sessionCookie, verificationRequired } from '../auth/session'
 import { CONTACT_EMAIL } from '@/lib/legal'
 import * as v from '../domain/validate'
 import { HttpError, json, noContent, readJson, redirect } from '../http'
 import { clientIp, rateLimit } from '../rate'
 import type { Services } from '../services'
 import { entryId, type UserEntry } from '../store/types'
+import { adoptGuest, publicGuest } from './guest'
 import type { Route } from './route'
 
 const MAX_FAILED_LOGINS = 10
@@ -148,7 +149,13 @@ export const authRoutes: Route[] = [
         // Every app load renews the session, so people who keep coming back stay signed in.
         const cookies = user ? [expiredLegacyCookie(s, SESSION_COOKIE), await sessionCookie(s, user)] : []
         // `verification` tells the app whether new accounts must confirm their email before using it.
-        return json({ user: user && publicUser(user), google: s.config.google !== null, verification: verificationRequired(s) }, 200, { cookies })
+        // `guest` is the encounter someone without an account is running on this device.
+        const guest = user ? null : await currentGuest(s, req)
+        return json(
+          { user: user && publicUser(user), guest: guest && publicGuest(guest), google: s.config.google !== null, verification: verificationRequired(s) },
+          200,
+          { cookies },
+        )
       },
       /** Account preferences: the side of the table to open on. */
       async PATCH(req, s) {
@@ -180,7 +187,9 @@ export const authRoutes: Route[] = [
           s.log.warn('Verification email failed', e)
           return created
         })
-        return json({ user: publicUser(user) }, 201, { cookies: [await sessionCookie(s, user)] })
+        // An encounter run as a guest on this device comes along.
+        const { adopted, cookies } = await adoptGuest(s, req, user.user_id)
+        return json({ user: publicUser(user), adopted }, 201, { cookies: [await sessionCookie(s, user), ...cookies] })
       },
     },
   },
@@ -211,7 +220,8 @@ export const authRoutes: Route[] = [
 
         const signedIn = user.failed_logins || user.locked_until ? { ...user, failed_logins: 0, locked_until: null } : user
         if (signedIn !== user) await s.store.putEntry(signedIn)
-        return json({ user: publicUser(signedIn) }, 200, { cookies: [await sessionCookie(s, signedIn)] })
+        const { adopted, cookies } = await adoptGuest(s, req, signedIn.user_id)
+        return json({ user: publicUser(signedIn), adopted }, 200, { cookies: [await sessionCookie(s, signedIn), ...cookies] })
       },
     },
   },
@@ -347,7 +357,8 @@ export const authRoutes: Route[] = [
         try {
           const { profile, next } = await finishGoogle(s, req)
           const user = await googleUser(s, profile)
-          return redirect(next, [clearGoogleState(s), await sessionCookie(s, user)])
+          const { cookies } = await adoptGuest(s, req, user.user_id)
+          return redirect(next, [clearGoogleState(s), await sessionCookie(s, user), ...cookies])
         } catch (e) {
           s.log.warn('Google sign-in failed', e)
           return redirect('/login?error=google', [clearGoogleState(s)])

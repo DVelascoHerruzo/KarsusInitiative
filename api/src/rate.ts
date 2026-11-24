@@ -26,6 +26,8 @@ export const LIMITS = {
   upload: { max: 120, windowSeconds: 3600 },
   account: { max: 5, windowSeconds: 3600 },
   verifyEmail: { max: 4, windowSeconds: 3600 },
+  /** New guest encounters from one address. */
+  guest: { max: 20, windowSeconds: 3600 },
 } satisfies Record<string, Limit>
 
 /**
